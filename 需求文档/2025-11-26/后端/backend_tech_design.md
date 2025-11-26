@@ -1,0 +1,244 @@
+# 后端技术设计文档 - 博客系统
+
+**日期**: 2025-11-26
+**角色**: 资深 Java 高级工程师
+**来源**: 后端需求文档 (backend_requirements.md)
+
+## 1. 接口设计 (API Specification)
+
+### 1.1 认证模块 (AuthController)
+- **POST /api/auth/login**
+  - Request: `LoginRequest { username, password }`
+  - Response: `ApiResponse<AuthResponse> { token, user: { id, username, role } }`
+  - Logic: 校验用户名密码 -> 生成 JWT -> 返回。
+- **POST /api/auth/register**
+  - Request: `RegisterRequest { username, password, email }`
+  - Response: `ApiResponse<Void>`
+  - Logic: 查重 -> 密码 BCrypt 加密 -> 存库。
+
+### 1.2 文章模块 (ArticleController)
+- **GET /api/articles**
+  - Query: `page, size, keyword, categoryId, tagId`
+  - Response: `ApiResponse<Page<ArticleSummaryDTO>>`
+  - Logic: 动态 JPA Specification 查询 -> DTO 映射。
+- **GET /api/articles/{id}**
+  - Response: `ApiResponse<ArticleDetailDTO>`
+  - Logic: 查库 -> 浏览量 +1 (异步) -> 返回。
+- **POST /api/articles** (Admin)
+  - Request: `ArticleCreateRequest { title, content, slug, categoryId, tagIds }`
+  - Response: `ApiResponse<Long>` (ID)
+  - Logic: 校验 Slug 唯一性 -> 存库 -> 处理标签关联。
+- **PUT /api/articles/{id}** (Admin)
+  - Request: `ArticleUpdateRequest`
+  - Response: `ApiResponse<Void>`
+- **POST /api/articles/{id}/publish** (Admin)
+  - Query: `publish (boolean)`
+  - Response: `ApiResponse<Void>`
+
+### 1.3 评论模块 (CommentController)
+- **POST /api/articles/{id}/comments**
+  - Request: `CommentCreateRequest { content, parentId, authorName, email }`
+  - Response: `ApiResponse<CommentDTO>`
+  - Logic: 校验文章存在 -> 存库 (状态默认 PENDING)。
+
+## 2. 数据库详细设计 (Database Schema)
+
+### Tables
+```sql
+CREATE TABLE users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'USER',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE categories (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description VARCHAR(255)
+);
+
+CREATE TABLE tags (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE articles (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL UNIQUE,
+    content TEXT NOT NULL,
+    summary VARCHAR(500),
+    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT', -- DRAFT, PUBLISHED
+    views BIGINT DEFAULT 0,
+    user_id BIGINT REFERENCES users(id),
+    category_id BIGINT REFERENCES categories(id),
+    published_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE article_tags (
+    article_id BIGINT REFERENCES articles(id) ON DELETE CASCADE,
+    tag_id BIGINT REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (article_id, tag_id)
+);
+
+CREATE TABLE comments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    article_id BIGINT REFERENCES articles(id) ON DELETE CASCADE,
+    parent_id BIGINT REFERENCES comments(id),
+    author_name VARCHAR(50) NOT NULL,
+    content TEXT NOT NULL,
+    status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, APPROVED
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## 3. 组件设计 (Component Design)
+
+### 3.1 异常处理 (GlobalExceptionHandler)
+- 捕获 `MethodArgumentNotValidException` -> 返回 400 + 字段错误信息。
+- 捕获 `EntityNotFoundException` -> 返回 404。
+- 捕获 `AccessDeniedException` -> 返回 403。
+- 捕获 `Exception` -> 返回 500 + "Internal Server Error"。
+
+### 3.2 安全配置 (SecurityConfig)
+- `SecurityFilterChain`:
+  - `csrf().disable()` (API 模式)。
+  - `sessionManagement().sessionCreationPolicy(STATELESS)`.
+  - `authorizeRequests()`:
+    - `/api/auth/**`, `/api/articles/**` (GET) -> `permitAll()`.
+    - `/api/admin/**`, POST/PUT/DELETE -> `hasRole('ADMIN')`.
+- `JwtAuthenticationFilter`:
+  - 拦截请求 -> 解析 Header `Authorization: Bearer <token>` -> 校验 JWT -> 设置 `SecurityContextHolder`。
+
+### 3.3 JPA 审计 (Auditing)
+# 后端技术设计文档 - 博客系统
+
+**日期**: 2025-11-26
+**角色**: 资深 Java 高级工程师
+**来源**: 后端需求文档 (backend_requirements.md)
+
+## 1. 接口设计 (API Specification)
+
+### 1.1 认证模块 (AuthController)
+- **POST /api/auth/login**
+  - Request: `LoginRequest { username, password }`
+  - Response: `ApiResponse<AuthResponse> { token, user: { id, username, role } }`
+  - Logic: 校验用户名密码 -> 生成 JWT -> 返回。
+- **POST /api/auth/register**
+  - Request: `RegisterRequest { username, password, email }`
+  - Response: `ApiResponse<Void>`
+  - Logic: 查重 -> 密码 BCrypt 加密 -> 存库。
+
+### 1.2 文章模块 (ArticleController)
+- **GET /api/articles**
+  - Query: `page, size, keyword, categoryId, tagId`
+  - Response: `ApiResponse<Page<ArticleSummaryDTO>>`
+  - Logic: 动态 JPA Specification 查询 -> DTO 映射。
+- **GET /api/articles/{id}**
+  - Response: `ApiResponse<ArticleDetailDTO>`
+  - Logic: 查库 -> 浏览量 +1 (异步) -> 返回。
+- **POST /api/articles** (Admin)
+  - Request: `ArticleCreateRequest { title, content, slug, categoryId, tagIds }`
+  - Response: `ApiResponse<Long>` (ID)
+  - Logic: 校验 Slug 唯一性 -> 存库 -> 处理标签关联。
+- **PUT /api/articles/{id}** (Admin)
+  - Request: `ArticleUpdateRequest`
+  - Response: `ApiResponse<Void>`
+- **POST /api/articles/{id}/publish** (Admin)
+  - Query: `publish (boolean)`
+  - Response: `ApiResponse<Void>`
+
+### 1.3 评论模块 (CommentController)
+- **POST /api/articles/{id}/comments**
+  - Request: `CommentCreateRequest { content, parentId, authorName, email }`
+  - Response: `ApiResponse<CommentDTO>`
+  - Logic: 校验文章存在 -> 存库 (状态默认 PENDING)。
+
+## 2. 数据库详细设计 (Database Schema)
+
+### Tables
+```sql
+CREATE TABLE users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'USER',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE categories (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description VARCHAR(255)
+);
+
+CREATE TABLE tags (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE articles (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL UNIQUE,
+    content TEXT NOT NULL,
+    summary VARCHAR(500),
+    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT', -- DRAFT, PUBLISHED
+    views BIGINT DEFAULT 0,
+    user_id BIGINT REFERENCES users(id),
+    category_id BIGINT REFERENCES categories(id),
+    published_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE article_tags (
+    article_id BIGINT REFERENCES articles(id) ON DELETE CASCADE,
+    tag_id BIGINT REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (article_id, tag_id)
+);
+
+CREATE TABLE comments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    article_id BIGINT REFERENCES articles(id) ON DELETE CASCADE,
+    parent_id BIGINT REFERENCES comments(id),
+    author_name VARCHAR(50) NOT NULL,
+    content TEXT NOT NULL,
+    status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, APPROVED
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## 3. 组件设计 (Component Design)
+
+### 3.1 异常处理 (GlobalExceptionHandler)
+- 捕获 `MethodArgumentNotValidException` -> 返回 400 + 字段错误信息。
+- 捕获 `EntityNotFoundException` -> 返回 404。
+- 捕获 `AccessDeniedException` -> 返回 403。
+- 捕获 `Exception` -> 返回 500 + "Internal Server Error"。
+
+### 3.2 安全配置 (SecurityConfig)
+- `SecurityFilterChain`:
+  - `csrf().disable()` (API 模式)。
+  - `sessionManagement().sessionCreationPolicy(STATELESS)`.
+  - `authorizeRequests()`:
+    - `/api/auth/**`, `/api/articles/**` (GET) -> `permitAll()`.
+    - `/api/admin/**`, POST/PUT/DELETE -> `hasRole('ADMIN')`.
+- `JwtAuthenticationFilter`:
+  - 拦截请求 -> 解析 Header `Authorization: Bearer <token>` -> 校验 JWT -> 设置 `SecurityContextHolder`。
+
+### 3.3 JPA 审计 (Auditing)
+- 启用 `@EnableJpaAuditing`。
+- Entity 添加 `@CreatedDate`, `@LastModifiedDate` 自动维护时间戳。
+
+## 4. 部署架构
+- **Docker Compose**:
+  - `app`: Spring Boot 应用 (Port 8080)。
+  - `db`: MySQL 8 (Port 3306)。
+  - `redis`: Redis 6 (Port 6379, Optional for cache)。
