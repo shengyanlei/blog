@@ -1,0 +1,19 @@
+{
+    "name": "blog-monorepo",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "build": "pnpm -r run build",
+        "dev": "pnpm -r run dev",
+        "lint": "pnpm -r run lint",
+        "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    },
+    "devDependencies": {
+        "prettier": "^3.0.0",
+        "typescript": "^5.0.0",
+        "eslint": "^8.0.0"
+    },
+    "engines": {
+        "node": ">=18"
+    }
+}
