@@ -65,8 +65,17 @@ public class SecurityConfig {
                 .antMatchers(HttpMethod.GET, "/api/articles/**").permitAll()
                 // 分类和标签查询：公开
                 .antMatchers(HttpMethod.GET, "/api/categories/**", "/api/tags/**").permitAll()
+                // 评论查询和发表：公开
+                .antMatchers(HttpMethod.GET, "/api/articles/*/comments").permitAll()
+                .antMatchers(HttpMethod.POST, "/api/articles/*/comments").permitAll()
+                // 评论管理：需要 ADMIN 角色
+                .antMatchers("/api/comments/**").hasRole("ADMIN")
                 // 管理员接口：需要 ADMIN 角色
                 .antMatchers("/api/admin/**").hasRole("ADMIN")
+                // 分类标签写操作：需要 ADMIN 角色
+                .antMatchers(HttpMethod.POST, "/api/categories/**", "/api/tags/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.DELETE, "/api/categories/**", "/api/tags/**").hasRole("ADMIN")
                 // 文章写操作：需要 ADMIN 角色
                 .antMatchers(HttpMethod.POST, "/api/articles/**").hasRole("ADMIN")
                 .antMatchers(HttpMethod.PUT, "/api/articles/**").hasRole("ADMIN")
