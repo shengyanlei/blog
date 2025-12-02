@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -50,4 +51,27 @@ public interface ArticleRepository extends JpaRepository<Article, Long>, JpaSpec
      */
     @EntityGraph(attributePaths = { "user", "category", "tags" })
     Optional<Article> findWithDetailsById(Long id);
+
+    /**
+     * 统计指定状态的文章数
+     */
+    long countByStatus(String status);
+
+    /**
+     * 计算总浏览量
+     */
+    @Query("SELECT COALESCE(SUM(a.views), 0) FROM Article a")
+    Long getTotalViews();
+
+    /**
+     * 获取热门文章（按浏览量排序）
+     */
+    @Query("SELECT a FROM Article a WHERE a.status = 'PUBLISHED' ORDER BY a.views DESC")
+    Page<Article> findTopArticlesByViews(Pageable pageable);
+
+    /**
+     * 按分类统计文章数
+     */
+    @Query("SELECT c.name, COUNT(a) FROM Article a JOIN a.category c WHERE a.status = 'PUBLISHED' GROUP BY c.id, c.name")
+    List<Object[]> countArticlesByCategory();
 }

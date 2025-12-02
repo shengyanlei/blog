@@ -24,4 +24,9 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
      * 根据文章ID查找所有评论（包含待审核）
      */
     List<Comment> findByArticleIdOrderByCreatedAtDesc(Long articleId);
+
+    /**
+     * 统计指定状态的评论数
+     */
+    long countByStatus(String status);
 }
