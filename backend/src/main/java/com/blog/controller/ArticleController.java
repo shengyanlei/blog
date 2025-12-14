@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 
 /**
- * 文章控制器
+ * Article controller.
  */
 @RestController
 @RequestMapping("/api/articles")
@@ -30,7 +30,7 @@ public class ArticleController {
     private final ArticleService articleService;
 
     /**
-     * 获取已发布文章列表（分页）
+     * List published articles with optional category or keyword filter.
      */
     @GetMapping
     public ResponseEntity<ApiResponse<Page<ArticleSummaryDTO>>> getArticles(
@@ -52,13 +52,13 @@ public class ArticleController {
 
             return ResponseEntity.ok(ApiResponse.success(articles));
         } catch (Exception e) {
-            log.error("获取文章列表失败: {}", e.getMessage());
+            log.error("Failed to fetch article list: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
     /**
-     * 获取文章详情
+     * Get article detail by id.
      */
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ArticleDetailDTO>> getArticleById(@PathVariable Long id) {
@@ -66,13 +66,27 @@ public class ArticleController {
             ArticleDetailDTO article = articleService.getArticleById(id);
             return ResponseEntity.ok(ApiResponse.success(article));
         } catch (Exception e) {
-            log.error("获取文章详情失败: {}", e.getMessage());
+            log.error("Failed to fetch article detail: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
     /**
-     * 创建文章 (仅管理员)
+     * Get article detail by slug.
+     */
+    @GetMapping("/slug/{slug}")
+    public ResponseEntity<ApiResponse<ArticleDetailDTO>> getArticleBySlug(@PathVariable String slug) {
+        try {
+            ArticleDetailDTO article = articleService.getArticleBySlug(slug);
+            return ResponseEntity.ok(ApiResponse.success(article));
+        } catch (Exception e) {
+            log.error("Failed to fetch article detail by slug: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
+     * Create article (admin only).
      */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -84,13 +98,13 @@ public class ArticleController {
             Long articleId = articleService.createArticle(request, username);
             return ResponseEntity.ok(ApiResponse.success("创建成功", articleId));
         } catch (Exception e) {
-            log.error("创建文章失败: {}", e.getMessage());
+            log.error("Failed to create article: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
     /**
-     * 更新文章 (仅管理员)
+     * Update article (admin only).
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -101,13 +115,13 @@ public class ArticleController {
             articleService.updateArticle(id, request);
             return ResponseEntity.ok(ApiResponse.success());
         } catch (Exception e) {
-            log.error("更新文章失败: {}", e.getMessage());
+            log.error("Failed to update article: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
     /**
-     * 删除文章 (仅管理员)
+     * Delete article (admin only).
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -116,13 +130,13 @@ public class ArticleController {
             articleService.deleteArticle(id);
             return ResponseEntity.ok(ApiResponse.success());
         } catch (Exception e) {
-            log.error("删除文章失败: {}", e.getMessage());
+            log.error("Failed to delete article: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
     /**
-     * 发布/取消发布文章 (仅管理员)
+     * Publish or unpublish article (admin only).
      */
     @PostMapping("/{id}/publish")
     @PreAuthorize("hasRole('ADMIN')")
@@ -133,7 +147,7 @@ public class ArticleController {
             articleService.publishArticle(id, publish);
             return ResponseEntity.ok(ApiResponse.success());
         } catch (Exception e) {
-            log.error("发布文章失败: {}", e.getMessage());
+            log.error("Failed to change publish status: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }

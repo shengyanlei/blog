@@ -1,40 +1,44 @@
-import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 
 export interface CategoryCardProps {
-    title: string;
-    slug: string;
-    backgroundImage: string;
-    index?: number;
+    id: number
+    name: string
+    description?: string
+    index?: number
 }
 
-export function CategoryCard({ title, slug, backgroundImage, index = 0 }: CategoryCardProps) {
+const gradients = [
+    'from-pink-500 via-rose-500 to-orange-400',
+    'from-indigo-500 via-sky-500 to-cyan-400',
+    'from-emerald-500 via-teal-500 to-lime-400',
+    'from-amber-500 via-orange-500 to-red-400',
+]
+
+export function CategoryCard({ id, name, description, index = 0 }: CategoryCardProps) {
+    const gradient = gradients[index % gradients.length]
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: index * 0.15 }}
         >
-            <Link to={`/category/${slug}`}>
-                <div className="relative h-48 overflow-hidden rounded-lg group cursor-pointer">
-                    {/* 背景图片 */}
-                    <img
-                        src={backgroundImage}
-                        alt={title}
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-
-                    {/* 半透明遮罩 */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/50 group-hover:from-black/40 group-hover:to-black/60 transition-all duration-300" />
-
-                    {/* 标题 */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <h3 className="text-white text-3xl font-bold drop-shadow-lg group-hover:scale-110 transition-transform duration-300">
-                            {title}
+            <Link to={`/?categoryId=${id}`}>
+                <div className={`relative h-48 overflow-hidden rounded-lg group cursor-pointer bg-gradient-to-br ${gradient}`}>
+                    <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_20%,#fff,transparent_35%),radial-gradient(circle_at_80%_0%,#fff,transparent_30%)]" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+                        <h3 className="text-white text-2xl font-bold drop-shadow-lg group-hover:scale-105 transition-transform duration-300">
+                            {name}
                         </h3>
+                        {description && (
+                            <p className="mt-2 text-sm text-white/80 line-clamp-2 group-hover:line-clamp-3 transition-all">
+                                {description}
+                            </p>
+                        )}
                     </div>
                 </div>
             </Link>
         </motion.div>
-    );
+    )
 }

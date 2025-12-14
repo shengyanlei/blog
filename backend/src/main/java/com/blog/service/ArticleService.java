@@ -23,6 +23,11 @@ public interface ArticleService {
     Page<ArticleSummaryDTO> getPublishedArticlesByCategory(Long categoryId, Pageable pageable);
 
     /**
+     * 获取全部文章（管理端）
+     */
+    Page<ArticleSummaryDTO> getAllArticles(Pageable pageable);
+
+    /**
      * 搜索已发布的文章（分页）
      */
     Page<ArticleSummaryDTO> searchPublishedArticles(String keyword, Pageable pageable);
@@ -31,6 +36,11 @@ public interface ArticleService {
      * 获取文章详情
      */
     ArticleDetailDTO getArticleById(Long id);
+
+    /**
+     * 根据 slug 获取文章详情
+     */
+    ArticleDetailDTO getArticleBySlug(String slug);
 
     /**
      * 创建文章

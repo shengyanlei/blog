@@ -1,16 +1,19 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Input } from '@repo/ui/components/ui/input';
 import { Search, X } from 'lucide-react';
 import { Button } from '@repo/ui/components/ui/button';
 
-export function SearchBar() {
-    const [query, setQuery] = useState('');
+interface SearchBarProps {
+    value: string;
+    placeholder?: string;
+    onChange: (value: string) => void;
+    onSubmit?: () => void;
+}
 
+export function SearchBar({ value, placeholder = '搜索文章...', onChange, onSubmit }: SearchBarProps) {
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        // TODO: Implement search functionality
-        console.log('Searching for:', query);
+        onSubmit?.();
     };
 
     return (
@@ -26,17 +29,17 @@ export function SearchBar() {
                         <Search className="ml-3 h-5 w-5 text-muted-foreground" />
                         <Input
                             type="text"
-                            placeholder="搜索文章..."
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder={placeholder}
+                            value={value}
+                            onChange={(e) => onChange(e.target.value)}
                             className="border-0 bg-transparent shadow-none focus-visible:ring-0 text-base"
                         />
-                        {query && (
+                        {value && (
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => setQuery('')}
+                                onClick={() => onChange('')}
                                 className="mr-1 h-8 w-8"
                             >
                                 <X className="h-4 w-4" />

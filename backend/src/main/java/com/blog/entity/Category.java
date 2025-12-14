@@ -29,6 +29,19 @@ public class Category {
     @Column(length = 255)
     private String description;
 
+    @Column(nullable = false, length = 80)
+    private String slug;
+
+    @Column(name = "slug_path", nullable = false, unique = true, length = 255)
+    private String slugPath;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Category parent;
+
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = false)
+    private java.util.Set<Category> children;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

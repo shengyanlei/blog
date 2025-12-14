@@ -53,6 +53,17 @@ public interface ArticleRepository extends JpaRepository<Article, Long>, JpaSpec
     Optional<Article> findWithDetailsById(Long id);
 
     /**
+     * 根据Slug查找文章并加载关联实体
+     */
+    @EntityGraph(attributePaths = { "user", "category", "tags" })
+    Optional<Article> findWithDetailsBySlug(String slug);
+
+    /**
+     * 检查分类下是否存在文章
+     */
+    boolean existsByCategoryId(Long categoryId);
+
+    /**
      * 统计指定状态的文章数
      */
     long countByStatus(String status);

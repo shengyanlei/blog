@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 标签服务实现类
+ * Tag service implementation.
  */
 @Service
 @RequiredArgsConstructor
@@ -27,7 +27,7 @@ public class TagServiceImpl implements TagService {
 
     @Override
     public List<TagDTO> getAllTags() {
-        log.info("获取所有标签");
+        log.info("Fetching all tags");
         return tagRepository.findAll().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -35,46 +35,42 @@ public class TagServiceImpl implements TagService {
 
     @Override
     public TagDTO getTagById(Long id) {
-        log.info("获取标签: {}", id);
+        log.info("Fetching tag {}", id);
         Tag tag = tagRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("标签不存在"));
+                .orElseThrow(() -> new EntityNotFoundException("Tag not found"));
         return convertToDTO(tag);
     }
 
     @Override
     @Transactional
     public TagDTO createTag(TagRequest request) {
-        log.info("创建标签: {}", request.getName());
+        log.info("Creating tag: {}", request.getName());
 
-        // 检查名称是否已存在
-        if (tagRepository.findByName(request.getName()).isPresent()) {
-            throw new BusinessException("标签名称已存在");
-        }
+        tagRepository.findByName(request.getName())
+                .ifPresent(existing -> {
+                    throw new BusinessException("Tag name already exists");
+                });
 
         Tag tag = new Tag();
         tag.setName(request.getName());
 
         Tag saved = tagRepository.save(tag);
-        log.info("标签创建成功: {}", saved.getId());
-
+        log.info("Tag created with id {}", saved.getId());
         return convertToDTO(saved);
     }
 
     @Override
     @Transactional
     public void deleteTag(Long id) {
-        log.info("删除标签: {}", id);
+        log.info("Deleting tag {}", id);
 
         if (!tagRepository.existsById(id)) {
-            throw new EntityNotFoundException("标签不存在");
+            throw new EntityNotFoundException("Tag not found");
         }
 
         tagRepository.deleteById(id);
     }
 
-    /**
-     * 将Entity转换为DTO
-     */
     private TagDTO convertToDTO(Tag tag) {
         return new TagDTO(tag.getId(), tag.getName());
     }

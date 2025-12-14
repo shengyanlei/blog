@@ -1,12 +1,11 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, Info, FileText, Search } from 'lucide-react';
-import { Button } from '@repo/ui/components/ui/button';
-import clsx from 'clsx';
+import { Outlet, Link, useLocation } from 'react-router-dom'
+import { Home, Info, FileText, Search } from 'lucide-react'
+import { Button } from '@repo/ui/components/ui/button'
+import clsx from 'clsx'
 
 export default function PublicLayout() {
-    const location = useLocation();
-
-    const isActive = (path: string) => location.pathname === path;
+    const location = useLocation()
+    const isActive = (path: string) => location.pathname === path
 
     return (
         <div className="flex min-h-screen flex-col">
@@ -30,14 +29,20 @@ export default function PublicLayout() {
                         </Link>
                         <Link
                             to="/about"
-                            className="flex items-center gap-2 text-white/80 hover:text-white transition-colors"
+                            className={clsx(
+                                'flex items-center gap-2 transition-colors',
+                                isActive('/about') ? 'text-white' : 'text-white/80 hover:text-white'
+                            )}
                         >
                             <Info className="h-4 w-4" />
                             关于
                         </Link>
                         <Link
                             to="/archive"
-                            className="flex items-center gap-2 text-white/80 hover:text-white transition-colors"
+                            className={clsx(
+                                'flex items-center gap-2 transition-colors',
+                                isActive('/archive') ? 'text-white' : 'text-white/80 hover:text-white'
+                            )}
                         >
                             <FileText className="h-4 w-4" />
                             文章
@@ -70,5 +75,5 @@ export default function PublicLayout() {
                 </div>
             </footer>
         </div>
-    );
+    )
 }

@@ -49,6 +49,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // 启用 CORS
+                .cors()
+                .and()
                 // 禁用 CSRF（API 模式）
                 .csrf().disable()
 
@@ -59,10 +62,13 @@ public class SecurityConfig {
 
                 // 请求授权配置
                 .authorizeRequests()
+                // 预检请求放行
+                .antMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 // 认证相关接口：公开
                 .antMatchers("/api/auth/**").permitAll()
                 // 文章查询接口：公开
-                .antMatchers(HttpMethod.GET, "/api/articles/**").permitAll()
+                .antMatchers(HttpMethod.GET, "/api/articles", "/api/articles/", "/api/articles/*",
+                        "/api/articles/slug/*").permitAll()
                 // 分类和标签查询：公开
                 .antMatchers(HttpMethod.GET, "/api/categories/**", "/api/tags/**").permitAll()
                 // 评论查询和发表：公开

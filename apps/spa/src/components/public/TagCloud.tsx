@@ -11,7 +11,11 @@ export interface TagCloudProps {
 }
 
 export function TagCloud({ tags }: TagCloudProps) {
-    const maxCount = Math.max(...tags.map((t) => t.count));
+    if (!tags.length) {
+        return <p className="text-sm text-muted-foreground">暂无标签</p>;
+    }
+
+    const maxCount = Math.max(...tags.map((t) => t.count), 1);
 
     const getFontSize = (count: number) => {
         const ratio = count / maxCount;

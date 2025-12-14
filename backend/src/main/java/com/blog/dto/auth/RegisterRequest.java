@@ -6,18 +6,18 @@ import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 
 /**
- * 注册请求DTO
+ * Register request DTO.
  */
 @Data
 public class RegisterRequest {
 
-    @NotBlank(message = "用户名不能为空")
+    @NotBlank(message = "Username is required")
     private String username;
 
-    @NotBlank(message = "密码不能为空")
+    @NotBlank(message = "Password is required")
     private String password;
 
-    @NotBlank(message = "邮箱不能为空")
-    @Email(message = "邮箱格式不正确")
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email format is invalid")
     private String email;
 }

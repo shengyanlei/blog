@@ -5,15 +5,15 @@ import lombok.Data;
 import javax.validation.constraints.NotBlank;
 
 /**
- * 评论创建请求DTO
+ * Comment creation request DTO.
  */
 @Data
 public class CommentCreateRequest {
 
-    @NotBlank(message = "评论内容不能为空")
+    @NotBlank(message = "Content is required")
     private String content;
 
-    @NotBlank(message = "作者名称不能为空")
+    @NotBlank(message = "Author name is required")
     private String authorName;
 
     private String email;

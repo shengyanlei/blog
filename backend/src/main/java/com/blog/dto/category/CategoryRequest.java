@@ -14,4 +14,9 @@ public class CategoryRequest {
     private String name;
 
     private String description;
+
+    /**
+     * 父级分类ID，可为空表示顶级
+     */
+    private Long parentId;
 }

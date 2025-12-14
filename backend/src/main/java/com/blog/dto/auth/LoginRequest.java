@@ -5,14 +5,14 @@ import lombok.Data;
 import javax.validation.constraints.NotBlank;
 
 /**
- * 登录请求DTO
+ * Login request DTO.
  */
 @Data
 public class LoginRequest {
 
-    @NotBlank(message = "用户名不能为空")
+    @NotBlank(message = "Username is required")
     private String username;
 
-    @NotBlank(message = "密码不能为空")
+    @NotBlank(message = "Password is required")
     private String password;
 }

@@ -1,25 +1,33 @@
-import { motion } from 'framer-motion';
-import { Card } from '@repo/ui/components/ui/card';
-import { Badge } from '@repo/ui/components/ui/badge';
-import { Calendar, Eye, Clock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+﻿import { motion } from 'framer-motion'
+import { Card } from '@repo/ui/components/ui/card'
+import { Badge } from '@repo/ui/components/ui/badge'
+import { Calendar, Eye, Clock } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export interface PostCardProps {
-    title: string;
-    excerpt: string;
-    slug: string;
-    coverImage?: string;
-    tags?: string[];
-    publishDate: string;
-    readTime?: string;
-    views?: string;
-    index?: number;
+    id: number
+    title: string
+    excerpt?: string
+    slug: string
+    categorySlugPath?: string
+    coverImage?: string
+    tags?: string[]
+    publishDate?: string
+    readTime?: string
+    views?: number
+    index?: number
+}
+
+const buildLink = (slug: string, categorySlugPath?: string) => {
+    const normalized = categorySlugPath?.replace(/^\/+|\/+$/g, '')
+    return normalized ? `/post/${normalized}/${slug}` : `/post/${slug}`
 }
 
 export function PostCard({
     title,
     excerpt,
     slug,
+    categorySlugPath,
     coverImage,
     tags = [],
     publishDate,
@@ -27,6 +35,10 @@ export function PostCard({
     views,
     index = 0,
 }: PostCardProps) {
+    const formattedDate = publishDate ? new Date(publishDate).toLocaleDateString() : '未知日期'
+    const safeExcerpt = excerpt || '这篇文章还没有摘要，点击卡片查看详情。'
+    const hasImage = Boolean(coverImage)
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -34,31 +46,30 @@ export function PostCard({
             transition={{ duration: 0.5, delay: index * 0.1 }}
         >
             <Card className="group overflow-hidden border-0 shadow-[0_20px_60px_-35px_rgba(0,0,0,0.45)] bg-white rounded-2xl p-0 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_25px_70px_-35px_rgba(0,0,0,0.55)]">
-                <Link to={`/post/${slug}`} className="flex flex-col md:flex-row h-full group/card">
-                    {/* 左侧 - 封面图，占一半宽度 */}
-                    {coverImage && (
-                        <div className="relative w-full md:w-1/2 min-h-52 md:min-h-[220px] overflow-hidden">
+                <Link to={buildLink(slug, categorySlugPath)} className="flex flex-col md:flex-row h-full group/card">
+                    <div className="relative w-full md:w-1/2 min-h-52 md:min-h-[220px] overflow-hidden">
+                        {hasImage ? (
                             <img
                                 src={coverImage}
                                 alt={title}
                                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 md:clip-slant-right group-hover/card:scale-[1.03] group-hover/card:rotate-[1.5deg]"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-r from-black/25 via-black/10 to-transparent md:clip-slant-right" />
-                        </div>
-                    )}
+                        ) : (
+                            <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 md:clip-slant-right" />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/25 via-black/10 to-transparent md:clip-slant-right" />
+                    </div>
 
-                    {/* 右侧 - 内容，占一半宽度 */}
                     <div className="w-full md:w-1/2 p-5 md:p-6 flex flex-col justify-between gap-3 transition-transform duration-500 group-hover/card:translate-x-1">
-                        {/* 元数据 */}
                         <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
                             <span className="flex items-center gap-1.5">
                                 <Calendar className="h-3.5 w-3.5" strokeWidth={1.75} />
-                                {publishDate}
+                                {formattedDate}
                             </span>
-                            {views && (
+                            {views !== undefined && (
                                 <span className="flex items-center gap-1.5">
                                     <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />
-                                    {views}次阅读
+                                    {views} 次阅读
                                 </span>
                             )}
                             {readTime && (
@@ -69,17 +80,12 @@ export function PostCard({
                             )}
                         </div>
 
-                        {/* 标题 */}
                         <h3 className="text-[22px] font-semibold text-pink-500 leading-snug transition-colors group-hover:text-pink-600 line-clamp-1">
                             {title}
                         </h3>
 
-                        {/* 摘要 */}
-                        <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
-                            {excerpt}
-                        </p>
+                        <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">{safeExcerpt}</p>
 
-                        {/* 底部 - 标签和按钮 */}
                         <div className="flex items-center justify-between">
                             <div className="flex flex-wrap gap-1.5">
                                 {tags.map((tag) => (
@@ -100,5 +106,5 @@ export function PostCard({
                 </Link>
             </Card>
         </motion.div>
-    );
+    )
 }

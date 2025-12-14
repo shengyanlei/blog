@@ -1,10 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { AuthUser } from '../types/api'
 
 interface AuthState {
     token: string | null
-    user: any | null
-    login: (token: string, user: any) => void
+    user: AuthUser | null
+    login: (token: string, user: AuthUser) => void
     logout: () => void
 }
 

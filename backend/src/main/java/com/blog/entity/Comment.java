@@ -9,7 +9,7 @@ import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
 /**
- * 评论实体
+ * Comment entity.
  */
 @Entity
 @Table(name = "comments")
@@ -21,11 +21,11 @@ public class Comment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "评论内容不能为空")
+    @NotBlank(message = "Content is required")
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @NotBlank(message = "作者名称不能为空")
+    @NotBlank(message = "Author name is required")
     @Column(name = "author_name", nullable = false, length = 50)
     private String authorName;
 
@@ -36,12 +36,10 @@ public class Comment {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // 多对一：评论 -> 文章
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "article_id", nullable = false)
     private Article article;
 
-    // 自关联：父评论
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private Comment parent;

@@ -3,6 +3,9 @@ package com.blog.service;
 import com.blog.dto.comment.CommentCreateRequest;
 import com.blog.dto.comment.CommentDTO;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 
 /**
@@ -14,6 +17,11 @@ public interface CommentService {
      * 获取文章的所有已批准评论
      */
     List<CommentDTO> getApprovedCommentsByArticleId(Long articleId);
+
+    /**
+     * 管理端按状态分页获取评论，status 为空则查询全部
+     */
+    Page<CommentDTO> getComments(String status, Pageable pageable);
 
     /**
      * 创建评论

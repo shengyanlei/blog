@@ -1,6 +1,8 @@
 package com.blog.repository;
 
 import com.blog.entity.Comment;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -29,4 +31,19 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
      * 统计指定状态的评论数
      */
     long countByStatus(String status);
+
+    /**
+     * 根据文章删除评论
+     */
+    void deleteByArticleId(Long articleId);
+
+    /**
+     * 按状态分页查询评论
+     */
+    Page<Comment> findByStatusOrderByCreatedAtDesc(String status, Pageable pageable);
+
+    /**
+     * 查询全部评论（分页，按时间倒序）
+     */
+    Page<Comment> findAllByOrderByCreatedAtDesc(Pageable pageable);
 }

@@ -20,4 +20,7 @@ public class CommentDTO {
     private String status;
     private LocalDateTime createdAt;
     private Long parentId;
+    private Long articleId;
+    private String articleTitle;
+    private String articleSlug;
 }

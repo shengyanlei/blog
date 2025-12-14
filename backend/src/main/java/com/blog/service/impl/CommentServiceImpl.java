@@ -4,21 +4,23 @@ import com.blog.dto.comment.CommentCreateRequest;
 import com.blog.dto.comment.CommentDTO;
 import com.blog.entity.Article;
 import com.blog.entity.Comment;
-import com.blog.exception.BusinessException;
 import com.blog.repository.ArticleRepository;
 import com.blog.repository.CommentRepository;
 import com.blog.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import javax.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 评论服务实现类
+ * Comment service implementation.
  */
 @Service
 @RequiredArgsConstructor
@@ -29,37 +31,46 @@ public class CommentServiceImpl implements CommentService {
     private final ArticleRepository articleRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<CommentDTO> getApprovedCommentsByArticleId(Long articleId) {
-        log.info("获取文章{}的评论", articleId);
+        log.info("Fetching approved comments for article {}", articleId);
         return commentRepository.findApprovedCommentsByArticleId(articleId).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<CommentDTO> getComments(String status, Pageable pageable) {
+        log.info("Fetching comments for admin, status: {}, page: {}", status, pageable.getPageNumber());
+        Page<Comment> page = StringUtils.hasText(status)
+                ? commentRepository.findByStatusOrderByCreatedAtDesc(status, pageable)
+                : commentRepository.findAllByOrderByCreatedAtDesc(pageable);
+        return page.map(this::convertToDTO);
+    }
+
+    @Override
     @Transactional
     public CommentDTO createComment(Long articleId, CommentCreateRequest request) {
-        log.info("创建评论: 文章ID={}", articleId);
+        log.info("Creating comment for article {}", articleId);
 
-        // 检查文章是否存在
         Article article = articleRepository.findById(articleId)
-                .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
+                .orElseThrow(() -> new EntityNotFoundException("Article not found"));
 
         Comment comment = new Comment();
         comment.setContent(request.getContent());
         comment.setAuthorName(request.getAuthorName());
         comment.setArticle(article);
-        comment.setStatus("PENDING"); // 默认待审核
+        comment.setStatus("PENDING");
 
-        // 设置父评论（如果有）
         if (request.getParentId() != null) {
             Comment parent = commentRepository.findById(request.getParentId())
-                    .orElseThrow(() -> new EntityNotFoundException("父评论不存在"));
+                    .orElseThrow(() -> new EntityNotFoundException("Parent comment not found"));
             comment.setParent(parent);
         }
 
         Comment saved = commentRepository.save(comment);
-        log.info("评论创建成功: {}", saved.getId());
+        log.info("Comment created with id {}", saved.getId());
 
         return convertToDTO(saved);
     }
@@ -67,10 +78,10 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public void deleteComment(Long commentId) {
-        log.info("删除评论: {}", commentId);
+        log.info("Deleting comment {}", commentId);
 
         if (!commentRepository.existsById(commentId)) {
-            throw new EntityNotFoundException("评论不存在");
+            throw new EntityNotFoundException("Comment not found");
         }
 
         commentRepository.deleteById(commentId);
@@ -79,18 +90,15 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public void approveComment(Long commentId) {
-        log.info("批准评论: {}", commentId);
+        log.info("Approving comment {}", commentId);
 
         Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new EntityNotFoundException("评论不存在"));
+                .orElseThrow(() -> new EntityNotFoundException("Comment not found"));
 
         comment.setStatus("APPROVED");
         commentRepository.save(comment);
     }
 
-    /**
-     * 转换为DTO
-     */
     private CommentDTO convertToDTO(Comment comment) {
         return new CommentDTO(
                 comment.getId(),
@@ -98,6 +106,9 @@ public class CommentServiceImpl implements CommentService {
                 comment.getAuthorName(),
                 comment.getStatus(),
                 comment.getCreatedAt(),
-                comment.getParent() != null ? comment.getParent().getId() : null);
+                comment.getParent() != null ? comment.getParent().getId() : null,
+                comment.getArticle() != null ? comment.getArticle().getId() : null,
+                comment.getArticle() != null ? comment.getArticle().getTitle() : null,
+                comment.getArticle() != null ? comment.getArticle().getSlug() : null);
     }
 }

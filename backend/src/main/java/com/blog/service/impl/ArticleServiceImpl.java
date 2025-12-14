@@ -13,6 +13,7 @@ import com.blog.entity.User;
 import com.blog.exception.BusinessException;
 import com.blog.repository.ArticleRepository;
 import com.blog.repository.CategoryRepository;
+import com.blog.repository.CommentRepository;
 import com.blog.repository.TagRepository;
 import com.blog.repository.UserRepository;
 import com.blog.service.ArticleService;
@@ -30,7 +31,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 文章服务实现类
+ * Article service implementation.
  */
 @Service
 @RequiredArgsConstructor
@@ -41,24 +42,32 @@ public class ArticleServiceImpl implements ArticleService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
+    private final CommentRepository commentRepository;
 
     @Override
     public Page<ArticleSummaryDTO> getPublishedArticles(Pageable pageable) {
-        log.info("获取已发布文章列表");
+        log.info("Fetching published articles, page {}", pageable.getPageNumber());
         return articleRepository.findPublishedArticles(pageable)
                 .map(this::convertToSummaryDTO);
     }
 
     @Override
+    public Page<ArticleSummaryDTO> getAllArticles(Pageable pageable) {
+        log.info("Fetching all articles (admin), page {}", pageable.getPageNumber());
+        return articleRepository.findAll(pageable)
+                .map(this::convertToSummaryDTO);
+    }
+
+    @Override
     public Page<ArticleSummaryDTO> getPublishedArticlesByCategory(Long categoryId, Pageable pageable) {
-        log.info("获取分类{}的已发布文章", categoryId);
+        log.info("Fetching published articles for category {}", categoryId);
         return articleRepository.findPublishedArticlesByCategory(categoryId, pageable)
                 .map(this::convertToSummaryDTO);
     }
 
     @Override
     public Page<ArticleSummaryDTO> searchPublishedArticles(String keyword, Pageable pageable) {
-        log.info("搜索已发布文章: {}", keyword);
+        log.info("Searching published articles by keyword '{}'", keyword);
         return articleRepository.searchPublishedArticles(keyword, pageable)
                 .map(this::convertToSummaryDTO);
     }
@@ -66,33 +75,40 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     @Transactional
     public ArticleDetailDTO getArticleById(Long id) {
-        log.info("获取文章详情: {}", id);
+        log.info("Fetching article detail by id: {}", id);
 
         Article article = articleRepository.findWithDetailsById(id)
-                .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
+                .orElseThrow(() -> new EntityNotFoundException("Article not found"));
 
-        // 异步增加浏览量
-        article.setViews(article.getViews() + 1);
-        articleRepository.save(article);
+        increaseViewCount(article);
+        return convertToDetailDTO(article);
+    }
 
+    @Override
+    @Transactional
+    public ArticleDetailDTO getArticleBySlug(String slug) {
+        log.info("Fetching article detail by slug: {}", slug);
+
+        Article article = articleRepository.findWithDetailsBySlug(slug)
+                .orElseThrow(() -> new EntityNotFoundException("Article not found"));
+
+        increaseViewCount(article);
         return convertToDetailDTO(article);
     }
 
     @Override
     @Transactional
     public Long createArticle(ArticleCreateRequest request, String username) {
-        log.info("创建文章: {}", request.getTitle());
+        log.info("Creating article: {}", request.getTitle());
 
-        // 检查Slug唯一性
-        if (articleRepository.findBySlug(request.getSlug()).isPresent()) {
-            throw new BusinessException("Slug已存在");
-        }
+        articleRepository.findBySlug(request.getSlug())
+                .ifPresent(existing -> {
+                    throw new BusinessException("Slug already exists");
+                });
 
-        // 查找用户
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("用户不存在"));
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        // 创建文章实体
         Article article = new Article();
         article.setTitle(request.getTitle());
         article.setSlug(request.getSlug());
@@ -100,48 +116,37 @@ public class ArticleServiceImpl implements ArticleService {
         article.setSummary(request.getSummary());
         article.setUser(user);
 
-        // 设置分类
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new EntityNotFoundException("分类不存在"));
+                    .orElseThrow(() -> new EntityNotFoundException("Category not found"));
             article.setCategory(category);
         }
 
-        // 设置标签
         if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
-            Set<Tag> tags = new HashSet<>();
-            for (Long tagId : request.getTagIds()) {
-                Tag tag = tagRepository.findById(tagId)
-                        .orElseThrow(() -> new EntityNotFoundException("标签不存在: " + tagId));
-                tags.add(tag);
-            }
-            article.setTags(tags);
+            article.setTags(loadTags(request.getTagIds()));
         }
 
         Article saved = articleRepository.save(article);
-        log.info("文章创建成功: {}", saved.getId());
-
+        log.info("Article created with id {}", saved.getId());
         return saved.getId();
     }
 
     @Override
     @Transactional
     public void updateArticle(Long id, ArticleUpdateRequest request) {
-        log.info("更新文章: {}", id);
+        log.info("Updating article {}", id);
 
         Article article = articleRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
+                .orElseThrow(() -> new EntityNotFoundException("Article not found"));
 
-        // 更新基本信息
         if (request.getTitle() != null) {
             article.setTitle(request.getTitle());
         }
         if (request.getSlug() != null) {
-            // 检查Slug冲突
             articleRepository.findBySlug(request.getSlug())
                     .ifPresent(existing -> {
                         if (!existing.getId().equals(id)) {
-                            throw new BusinessException("Slug已存在");
+                            throw new BusinessException("Slug already exists");
                         }
                     });
             article.setSlug(request.getSlug());
@@ -153,22 +158,14 @@ public class ArticleServiceImpl implements ArticleService {
             article.setSummary(request.getSummary());
         }
 
-        // 更新分类
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new EntityNotFoundException("分类不存在"));
+                    .orElseThrow(() -> new EntityNotFoundException("Category not found"));
             article.setCategory(category);
         }
 
-        // 更新标签
         if (request.getTagIds() != null) {
-            Set<Tag> tags = new HashSet<>();
-            for (Long tagId : request.getTagIds()) {
-                Tag tag = tagRepository.findById(tagId)
-                        .orElseThrow(() -> new EntityNotFoundException("标签不存在: " + tagId));
-                tags.add(tag);
-            }
-            article.setTags(tags);
+            article.setTags(request.getTagIds().isEmpty() ? new HashSet<>() : loadTags(request.getTagIds()));
         }
 
         articleRepository.save(article);
@@ -177,26 +174,34 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     @Transactional
     public void deleteArticle(Long id) {
-        log.info("删除文章: {}", id);
+        log.info("Deleting article {}", id);
 
-        if (!articleRepository.existsById(id)) {
-            throw new EntityNotFoundException("文章不存在");
+        Article article = articleRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Article not found"));
+
+        // 清理评论
+        commentRepository.deleteByArticleId(id);
+        // 清理标签关联
+        if (article.getTags() != null) {
+            article.getTags().clear();
         }
 
-        articleRepository.deleteById(id);
+        articleRepository.delete(article);
     }
 
     @Override
     @Transactional
     public void publishArticle(Long id, boolean publish) {
-        log.info("{}文章: {}", publish ? "发布" : "取消发布", id);
+        log.info("{} article {}", publish ? "Publishing" : "Unpublishing", id);
 
         Article article = articleRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("文章不存在"));
+                .orElseThrow(() -> new EntityNotFoundException("Article not found"));
 
         if (publish) {
             article.setStatus("PUBLISHED");
-            article.setPublishedAt(LocalDateTime.now());
+            if (article.getPublishedAt() == null) {
+                article.setPublishedAt(LocalDateTime.now());
+            }
         } else {
             article.setStatus("DRAFT");
             article.setPublishedAt(null);
@@ -205,9 +210,21 @@ public class ArticleServiceImpl implements ArticleService {
         articleRepository.save(article);
     }
 
-    /**
-     * 转换为摘要DTO
-     */
+    private Set<Tag> loadTags(Set<Long> tagIds) {
+        Set<Tag> tags = new HashSet<>();
+        for (Long tagId : tagIds) {
+            Tag tag = tagRepository.findById(tagId)
+                    .orElseThrow(() -> new EntityNotFoundException("Tag not found: " + tagId));
+            tags.add(tag);
+        }
+        return tags;
+    }
+
+    private void increaseViewCount(Article article) {
+        article.setViews(article.getViews() + 1);
+        articleRepository.save(article);
+    }
+
     private ArticleSummaryDTO convertToSummaryDTO(Article article) {
         ArticleSummaryDTO dto = new ArticleSummaryDTO();
         dto.setId(article.getId());
@@ -227,7 +244,10 @@ public class ArticleServiceImpl implements ArticleService {
             dto.setCategory(new CategoryDTO(
                     article.getCategory().getId(),
                     article.getCategory().getName(),
-                    article.getCategory().getDescription()));
+                    article.getCategory().getDescription(),
+                    article.getCategory().getSlugPath(),
+                    article.getCategory().getParent() != null ? article.getCategory().getParent().getId() : null,
+                    null));
         }
 
         if (article.getTags() != null) {
@@ -240,9 +260,6 @@ public class ArticleServiceImpl implements ArticleService {
         return dto;
     }
 
-    /**
-     * 转换为详情DTO
-     */
     private ArticleDetailDTO convertToDetailDTO(Article article) {
         ArticleDetailDTO dto = new ArticleDetailDTO();
         dto.setId(article.getId());
@@ -264,7 +281,10 @@ public class ArticleServiceImpl implements ArticleService {
             dto.setCategory(new CategoryDTO(
                     article.getCategory().getId(),
                     article.getCategory().getName(),
-                    article.getCategory().getDescription()));
+                    article.getCategory().getDescription(),
+                    article.getCategory().getSlugPath(),
+                    article.getCategory().getParent() != null ? article.getCategory().getParent().getId() : null,
+                    null));
         }
 
         if (article.getTags() != null) {

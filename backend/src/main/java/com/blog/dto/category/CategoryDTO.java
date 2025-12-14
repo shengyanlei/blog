@@ -15,4 +15,7 @@ public class CategoryDTO {
     private Long id;
     private String name;
     private String description;
+    private String slugPath;
+    private Long parentId;
+    private java.util.List<CategoryDTO> children;
 }
