@@ -112,11 +112,8 @@ export default function HomePage() {
                     <h1 className="text-5xl md:text-7xl font-bold tracking-wide drop-shadow-[0_10px_30px_rgba(0,0,0,0.45)]">
                         碎念随风
                     </h1>
-                    <p className="text-2xl text-white/90 drop-shadow-md">
-                        {pinnedPost?.title ?? '记录技术与生活的碎片'}
-                    </p>
-                    <p className="text-base md:text-lg text-white/70 max-w-3xl mx-auto leading-relaxed">
-                        {pinnedPost?.summary ?? '人间纵有千难万阻，依旧想把一行行代码与思考化作微光，照亮前路。'}
+                    <p className="text-2xl text-white/90 drop-shadow-md max-w-4xl mx-auto leading-relaxed">
+                        人海未见之时，我亦独行在这城市。 料峭，春醒，酷暑，骤雨，寒意四起，大雁南飞，而后，大雪，寒风， 斗转星移，人间寒暑。
                     </p>
                     <div className="pt-6">
                         <SearchBar value={keyword} onChange={setKeyword} onSubmit={handleSearch} />

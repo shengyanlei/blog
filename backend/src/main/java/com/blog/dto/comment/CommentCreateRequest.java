@@ -13,7 +13,6 @@ public class CommentCreateRequest {
     @NotBlank(message = "Content is required")
     private String content;
 
-    @NotBlank(message = "Author name is required")
     private String authorName;
 
     private String email;

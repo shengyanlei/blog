@@ -7,6 +7,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
+import org.springframework.util.StringUtils;
 
 /**
  * Comment entity.
@@ -25,12 +26,11 @@ public class Comment {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @NotBlank(message = "Author name is required")
     @Column(name = "author_name", nullable = false, length = 50)
     private String authorName;
 
     @Column(nullable = false, length = 20)
-    private String status = "PENDING"; // PENDING, APPROVED, SPAM
+    private String status = "APPROVED"; // APPROVED, SPAM
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -43,4 +43,11 @@ public class Comment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private Comment parent;
+
+    @PrePersist
+    public void prePersist() {
+        if (!StringUtils.hasText(status)) {
+            status = "APPROVED";
+        }
+    }
 }

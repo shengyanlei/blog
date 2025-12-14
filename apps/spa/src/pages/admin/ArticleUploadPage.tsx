@@ -131,8 +131,8 @@ export default function ArticleUploadPage() {
                 </div>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-[1.2fr_360px]">
-                <Card className="border border-slate-200 shadow-sm">
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,360px)] xl:grid-cols-[minmax(0,1.6fr)_380px] items-start">
+                <Card className="border border-slate-200 shadow-sm min-w-0">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <FileUp className="h-4 w-4" />
@@ -167,7 +167,7 @@ export default function ArticleUploadPage() {
 
                         <div className="space-y-2">
                             <p className="text-sm text-slate-700">正文预览 (Markdown)</p>
-                            <div className="rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-700 max-h-96 overflow-auto">
+                            <div className="rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-700 max-h-[520px] overflow-auto">
                                 {content ? (
                                     <div data-color-mode="light">
                                         <MarkdownPreview source={content} />
@@ -191,7 +191,7 @@ export default function ArticleUploadPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="border border-slate-200 shadow-sm">
+                <Card className="border border-slate-200 shadow-sm lg:sticky lg:top-24 min-w-0">
                     <CardHeader>
                         <CardTitle>元信息</CardTitle>
                     </CardHeader>

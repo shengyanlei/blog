@@ -7,63 +7,68 @@ export default function PublicLayout() {
     const location = useLocation()
     const isActive = (path: string) => location.pathname === path
 
+    const isArticlePage = location.pathname.startsWith('/post')
+
     return (
         <div className="flex min-h-screen flex-col">
-            <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/50 to-transparent text-white">
-                <div className="container flex h-16 items-center justify-between px-4 md:px-6">
-                    <Link to="/" className="flex items-center gap-2 text-lg font-semibold tracking-wide">
-                        <span className="text-xl">✦</span>
-                        <span>碎念随风</span>
-                    </Link>
+            {!isArticlePage && (
+                <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/50 to-transparent text-white">
 
-                    <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-                        <Link
-                            to="/"
-                            className={clsx(
-                                'flex items-center gap-2 transition-colors',
-                                isActive('/') ? 'text-white' : 'text-white/80 hover:text-white'
-                            )}
-                        >
-                            <Home className="h-4 w-4" />
-                            首页
+                    <div className="container flex h-16 items-center justify-between px-4 md:px-6">
+                        <Link to="/" className="flex items-center gap-2 text-lg font-semibold tracking-wide">
+                            <span className="text-xl">✦</span>
+                            <span>碎念随风</span>
                         </Link>
-                        <Link
-                            to="/about"
-                            className={clsx(
-                                'flex items-center gap-2 transition-colors',
-                                isActive('/about') ? 'text-white' : 'text-white/80 hover:text-white'
-                            )}
-                        >
-                            <Info className="h-4 w-4" />
-                            关于
-                        </Link>
-                        <Link
-                            to="/archive"
-                            className={clsx(
-                                'flex items-center gap-2 transition-colors',
-                                isActive('/archive') ? 'text-white' : 'text-white/80 hover:text-white'
-                            )}
-                        >
-                            <FileText className="h-4 w-4" />
-                            文章
-                        </Link>
-                    </nav>
 
-                    <div className="flex items-center gap-3">
-                        <button
-                            aria-label="搜索"
-                            className="hidden md:inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 transition-colors"
-                        >
-                            <Search className="h-4 w-4" />
-                        </button>
-                        <Link to="/admin/login">
-                            <Button variant="secondary" size="sm" className="bg-white/90 text-slate-900 hover:bg-white">
-                                后台管理
-                            </Button>
-                        </Link>
+                        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+                            <Link
+                                to="/"
+                                className={clsx(
+                                    'flex items-center gap-2 transition-colors',
+                                    isActive('/') ? 'text-white' : 'text-white/80 hover:text-white'
+                                )}
+                            >
+                                <Home className="h-4 w-4" />
+                                首页
+                            </Link>
+                            <Link
+                                to="/about"
+                                className={clsx(
+                                    'flex items-center gap-2 transition-colors',
+                                    isActive('/about') ? 'text-white' : 'text-white/80 hover:text-white'
+                                )}
+                            >
+                                <Info className="h-4 w-4" />
+                                关于
+                            </Link>
+                            <Link
+                                to="/archive"
+                                className={clsx(
+                                    'flex items-center gap-2 transition-colors',
+                                    isActive('/archive') ? 'text-white' : 'text-white/80 hover:text-white'
+                                )}
+                            >
+                                <FileText className="h-4 w-4" />
+                                文章
+                            </Link>
+                        </nav>
+
+                        <div className="flex items-center gap-3">
+                            <button
+                                aria-label="搜索"
+                                className="hidden md:inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 transition-colors"
+                            >
+                                <Search className="h-4 w-4" />
+                            </button>
+                            <Link to="/admin/login">
+                                <Button variant="secondary" size="sm" className="bg-white/90 text-slate-900 hover:bg-white">
+                                    后台管理
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
-                </div>
-            </header>
+                </header>
+            )}
 
             <main className="flex-1">
                 <Outlet />

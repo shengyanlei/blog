@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 
 import javax.persistence.EntityNotFoundException;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -32,9 +33,9 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CommentDTO> getApprovedCommentsByArticleId(Long articleId) {
-        log.info("Fetching approved comments for article {}", articleId);
-        return commentRepository.findApprovedCommentsByArticleId(articleId).stream()
+    public List<CommentDTO> getCommentsByArticleId(Long articleId) {
+        log.info("Fetching comments for article {}", articleId);
+        return commentRepository.findByArticleIdOrderByCreatedAtDesc(articleId).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -58,10 +59,14 @@ public class CommentServiceImpl implements CommentService {
                 .orElseThrow(() -> new EntityNotFoundException("Article not found"));
 
         Comment comment = new Comment();
+        String authorName = StringUtils.hasText(request.getAuthorName())
+                ? request.getAuthorName().trim()
+                : generateAnonymousName();
+
         comment.setContent(request.getContent());
-        comment.setAuthorName(request.getAuthorName());
+        comment.setAuthorName(authorName);
         comment.setArticle(article);
-        comment.setStatus("PENDING");
+        comment.setStatus("APPROVED");
 
         if (request.getParentId() != null) {
             Comment parent = commentRepository.findById(request.getParentId())
@@ -97,6 +102,11 @@ public class CommentServiceImpl implements CommentService {
 
         comment.setStatus("APPROVED");
         commentRepository.save(comment);
+    }
+
+    private String generateAnonymousName() {
+        int number = ThreadLocalRandom.current().nextInt(1000, 10000);
+        return "Visitor-" + number;
     }
 
     private CommentDTO convertToDTO(Comment comment) {

@@ -175,6 +175,62 @@
     animation: twinkle 3s infinite;
     opacity: 0.8;
   }
+
+  /* --- Mac Terminal Style for Markdown Code Blocks --- */
+  .markdown-mac-terminal pre {
+    padding-top: 3.5rem !important;
+    /* Space for the "traffic lights" */
+    padding-left: 1.5rem !important;
+    /* Fix content cutting off on left */
+    padding-right: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+
+    position: relative;
+    background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #f9d7ec 100%) !important;
+    /* Soft pastel pink gradient */
+    border-radius: 1rem !important;
+    border: 1px solid rgba(244, 114, 182, 0.25) !important;
+    box-shadow: 0 12px 38px -12px rgba(244, 114, 182, 0.35) !important;
+    color: #6b7280 !important;
+    /* Softer text for light background */
+    overflow-x: auto !important;
+    /* Allow scrolling */
+  }
+
+  /* Traffic lights container simulation */
+  .markdown-mac-terminal pre::before {
+    content: '...';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2.5rem;
+    background: linear-gradient(90deg, #f9a8d4, #fbcfe8);
+    /* Light pink header strip */
+    border-bottom: 1px solid rgba(244, 114, 182, 0.4);
+    z-index: 10;
+    color: transparent;
+    pointer-events: none;
+  }
+
+  /* The actual dots */
+  .markdown-mac-terminal pre::after {
+    content: none;
+  }
+
+  /* Force code block to respect padding */
+  .markdown-mac-terminal pre>code {
+    display: inline-block !important;
+    /* Changed to inline-block for scrolling */
+    min-width: 100%;
+    padding: 0 !important;
+    background-color: transparent !important;
+    color: inherit !important;
+    text-shadow: none !important;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace !important;
+    font-size: 0.9em !important;
+    line-height: 1.6 !important;
+  }
 }
 
 @layer components {

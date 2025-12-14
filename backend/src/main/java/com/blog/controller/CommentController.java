@@ -30,7 +30,7 @@ public class CommentController {
     @GetMapping("/articles/{articleId}/comments")
     public ResponseEntity<ApiResponse<List<CommentDTO>>> getComments(@PathVariable Long articleId) {
         try {
-            List<CommentDTO> comments = commentService.getApprovedCommentsByArticleId(articleId);
+            List<CommentDTO> comments = commentService.getCommentsByArticleId(articleId);
             return ResponseEntity.ok(ApiResponse.success(comments));
         } catch (Exception e) {
             log.error("获取评论失败: {}", e.getMessage());
@@ -39,7 +39,7 @@ public class CommentController {
     }
 
     /**
-     * 发表评论
+     * 发布评论
      */
     @PostMapping("/articles/{articleId}/comments")
     public ResponseEntity<ApiResponse<CommentDTO>> createComment(
@@ -47,7 +47,7 @@ public class CommentController {
             @Valid @RequestBody CommentCreateRequest request) {
         try {
             CommentDTO comment = commentService.createComment(articleId, request);
-            return ResponseEntity.ok(ApiResponse.success("评论已提交，等待审核", comment));
+            return ResponseEntity.ok(ApiResponse.success("评论已发布", comment));
         } catch (Exception e) {
             log.error("发表评论失败: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));

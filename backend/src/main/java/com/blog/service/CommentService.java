@@ -14,9 +14,9 @@ import java.util.List;
 public interface CommentService {
 
     /**
-     * 获取文章的所有已批准评论
+     * 获取文章的所有评论（按时间倒序）
      */
-    List<CommentDTO> getApprovedCommentsByArticleId(Long articleId);
+    List<CommentDTO> getCommentsByArticleId(Long articleId);
 
     /**
      * 管理端按状态分页获取评论，status 为空则查询全部
