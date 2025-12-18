@@ -1,6 +1,6 @@
 ﻿import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/useAuthStore'
-import { LayoutDashboard, FileText, Settings, Pencil, Tag, MessageSquare, Upload } from 'lucide-react'
+import { LayoutDashboard, FileText, Settings, Pencil, Tag, MessageSquare, Upload, MapPinned } from 'lucide-react'
 
 export default function AdminLayout() {
     const { token } = useAuthStore()
@@ -18,6 +18,7 @@ export default function AdminLayout() {
         { to: '/admin/comments', label: '评论管理', icon: MessageSquare },
         { to: '/admin/tags', label: '标签管理', icon: Tag },
         { to: '/admin/categories', label: '分类管理', icon: FileText },
+        { to: '/admin/footprints', label: '足迹管理', icon: MapPinned },
         { to: '/admin/settings', label: '设置', icon: Settings, disabled: true },
     ]
 

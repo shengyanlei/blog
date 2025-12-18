@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Home, Info, FileText, Search } from 'lucide-react'
+import { Home, Info, FileText, Search, Map } from 'lucide-react'
 import { Button } from '@repo/ui/components/ui/button'
 import clsx from 'clsx'
 
@@ -50,6 +50,16 @@ export default function PublicLayout() {
                             >
                                 <FileText className="h-4 w-4" />
                                 文章
+                            </Link>
+                            <Link
+                                to="/footprint"
+                                className={clsx(
+                                    'flex items-center gap-2 transition-colors',
+                                    isActive('/footprint') ? 'text-white' : 'text-white/80 hover:text-white'
+                                )}
+                            >
+                                <Map className="h-4 w-4" />
+                                足迹
                             </Link>
                         </nav>
 

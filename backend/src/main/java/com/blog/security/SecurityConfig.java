@@ -14,10 +14,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-/**
- * Spring Security 配置类
- */
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
@@ -26,73 +28,66 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    /**
-     * 密码加密器
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * 认证管理器
-     */
     @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration authenticationConfiguration) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
-    /**
-     * Security 过滤链配置
-     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 启用 CORS
-                .cors()
-                .and()
-                // 禁用 CSRF（API 模式）
+                .cors().and()
                 .csrf().disable()
-
-                // Session 管理：无状态
-                .sessionManagement()
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
-
-                // 请求授权配置
                 .authorizeRequests()
-                // 预检请求放行
                 .antMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                // 认证相关接口：公开
                 .antMatchers("/api/auth/**").permitAll()
-                // 文章查询接口：公开
                 .antMatchers(HttpMethod.GET, "/api/articles", "/api/articles/", "/api/articles/*",
                         "/api/articles/slug/*").permitAll()
-                // 分类和标签查询：公开
                 .antMatchers(HttpMethod.GET, "/api/categories/**", "/api/tags/**").permitAll()
-                // 评论查询和发表：公开
                 .antMatchers(HttpMethod.GET, "/api/articles/*/comments").permitAll()
                 .antMatchers(HttpMethod.POST, "/api/articles/*/comments").permitAll()
-                // 评论管理：需要 ADMIN 角色
+                .antMatchers("/uploads/**").permitAll()
+                // Footprints: GET public, other operations require login
+                .antMatchers(HttpMethod.GET, "/api/footprints/**").permitAll()
+                .antMatchers("/api/footprints/**").authenticated()
                 .antMatchers("/api/comments/**").hasRole("ADMIN")
-                // 管理员接口：需要 ADMIN 角色
                 .antMatchers("/api/admin/**").hasRole("ADMIN")
-                // 分类标签写操作：需要 ADMIN 角色
                 .antMatchers(HttpMethod.POST, "/api/categories/**", "/api/tags/**").hasRole("ADMIN")
                 .antMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
                 .antMatchers(HttpMethod.DELETE, "/api/categories/**", "/api/tags/**").hasRole("ADMIN")
-                // 文章写操作：需要 ADMIN 角色
                 .antMatchers(HttpMethod.POST, "/api/articles/**").hasRole("ADMIN")
                 .antMatchers(HttpMethod.PUT, "/api/articles/**").hasRole("ADMIN")
                 .antMatchers(HttpMethod.DELETE, "/api/articles/**").hasRole("ADMIN")
-                // 其他请求：需要认证
                 .anyRequest().authenticated()
                 .and()
-
-                // 添加 JWT 过滤器
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /**
+     * Global CORS: allow dev front-end (5173) and localhost/127.*.
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        // Allow common local network segments so the dev server on 0.0.0.0 (including WSL/VM bridges) won't hit CORS 403.
+        configuration.setAllowedOriginPatterns(
+                List.of("http://localhost:*", "http://127.0.0.1:*", "http://192.168.*:*", "http://172.*:*", "http://10.*:*"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(List.of("Authorization"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }
