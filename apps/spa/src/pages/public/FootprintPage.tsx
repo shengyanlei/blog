@@ -300,31 +300,31 @@ export default function FootprintPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 pt-16 pb-20">
+        <div className="min-h-screen bg-[color:var(--paper)] pt-16 pb-20 text-[color:var(--ink)] font-body">
             {/* Header / Top Bar */}
-            <div className="sticky top-16 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 shadow-sm">
+            <div className="sticky top-16 z-40 bg-[color:var(--paper-soft)]/90 backdrop-blur-md border-b border-[color:var(--card-border)] px-4 py-3 shadow-sm">
                 <div className="container mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Map className="h-5 w-5 text-indigo-500" />
-                        <h1 className="text-lg font-bold text-slate-800">我的足迹</h1>
+                        <Map className="h-5 w-5 text-[color:var(--accent)]" />
+                        <h1 className="text-lg font-semibold text-[color:var(--ink)] font-display">我的足迹</h1>
 
                         {/* Breadcrumbs */}
                         {viewLevel !== 'china' && (
-                            <div className="flex items-center gap-2 text-sm text-slate-500 ml-4 pl-4 border-l border-slate-300">
-                                <button onClick={handleBackToNational} className="hover:text-indigo-600 transition-colors">
+                            <div className="flex items-center gap-2 text-sm text-[color:var(--ink-soft)] ml-4 pl-4 border-l border-[color:var(--card-border)]">
+                                <button onClick={handleBackToNational} className="hover:text-[color:var(--accent)] transition-colors">
                                     全国
                                 </button>
                                 <span>&gt;</span>
                                 <button
                                     onClick={() => viewLevel === 'city' && handleBack()}
-                                    className={`${viewLevel === 'city' ? 'hover:text-indigo-600 transition-colors' : 'font-medium text-slate-800'}`}
+                                    className={`${viewLevel === 'city' ? 'hover:text-[color:var(--accent)] transition-colors' : 'font-medium text-[color:var(--ink)]'}`}
                                 >
                                     {selectedProvince}
                                 </button>
                                 {viewLevel === 'city' && (
                                     <>
                                         <span>&gt;</span>
-                                        <span className="font-medium text-slate-800">{selectedCity}</span>
+                                        <span className="font-medium text-[color:var(--ink)]">{selectedCity}</span>
                                     </>
                                 )}
                             </div>
@@ -332,13 +332,17 @@ export default function FootprintPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" className="gap-1 text-slate-600">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1 text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] hover:bg-[color:var(--paper-strong)]"
+                        >
                             <ListFilter className="h-4 w-4" />
                             <span className="hidden sm:inline">统计/筛选</span>
                         </Button>
                         <Button
                             size="sm"
-                            className="gap-1 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                            className="gap-1 bg-[color:var(--accent)] hover:bg-[#92400e] text-white shadow-sm"
                             onClick={() => {
                                 setErrorMsg(null)
                                 if (!ensureAuth()) return
@@ -364,7 +368,7 @@ export default function FootprintPage() {
                             transition={{ duration: 0.3 }}
                         >
                             <VisitedStats data={provincesQuery.data || []} />
-                            <div className="mt-6 bg-white rounded-2xl shadow-sm border border-slate-100 h-[85vh] min-h-[600px] relative overflow-hidden">
+                            <div className="mt-6 bg-[color:var(--paper-soft)] rounded-2xl shadow-[0_30px_60px_-45px_rgba(31,41,55,0.35)] border border-[color:var(--card-border)] h-[85vh] min-h-[600px] relative overflow-hidden">
                                 <ChinaMap
                                     data={(provincesQuery.data || []).map((p: any) => ({
                                         province: p.province,
@@ -376,8 +380,9 @@ export default function FootprintPage() {
                                     onProvinceSelect={handleProvinceSelect}
                                 />
                                 {(provincesQuery.data || []).length === 0 && (
-                                    <div className="absolute bottom-10 left-0 right-0 text-center text-slate-400">
-                                        还没有足迹，点右上角添加第一条旅行记录?                                    </div>
+                                    <div className="absolute bottom-10 left-0 right-0 text-center text-[color:var(--ink-soft)]">
+                                        还没有足迹，点右上角添加第一条旅行记录。
+                                    </div>
                                 )}
                             </div>
                         </motion.div>
@@ -391,7 +396,7 @@ export default function FootprintPage() {
                             exit={{ opacity: 0, scale: 1.05 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 h-[82vh] min-h-[600px] overflow-hidden">
+                            <div className="bg-[color:var(--paper-soft)] rounded-2xl shadow-[0_30px_60px_-45px_rgba(31,41,55,0.35)] border border-[color:var(--card-border)] h-[82vh] min-h-[600px] overflow-hidden">
                                 <ProvinceMap
                                     provinceName={selectedProvince}
                                     data={provinceCitiesQuery.data || []}
@@ -429,18 +434,21 @@ export default function FootprintPage() {
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
                     >
-                        <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl border border-slate-200 p-6 space-y-4">
+                        <div className="w-full max-w-lg rounded-2xl bg-[color:var(--paper-soft)] shadow-[0_30px_60px_-45px_rgba(31,41,55,0.4)] border border-[color:var(--card-border)] p-6 space-y-4">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-slate-800">添加足迹</h3>
-                                <button className="text-slate-500 hover:text-slate-700" onClick={() => setShowAdd(false)}>
+                                <h3 className="text-lg font-semibold text-[color:var(--ink)]">添加足迹</h3>
+                                <button
+                                    className="text-[color:var(--ink-soft)] hover:text-[color:var(--ink)]"
+                                    onClick={() => setShowAdd(false)}
+                                >
                                     ×
                                 </button>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
-                                <label className="text-sm text-slate-600 space-y-1 relative">
+                                <label className="text-sm text-[color:var(--ink-muted)] space-y-1 relative">
                                     <span>省份</span>
                                     <input
-                                        className="w-full rounded border border-slate-200 px-2 py-1"
+                                        className="w-full rounded border border-[color:var(--card-border)] bg-[color:var(--paper)] px-2 py-1 text-[color:var(--ink)] focus:border-[color:var(--accent)]/60 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/10"
                                         value={draft.province}
                                         onFocus={() => setShowProvinceDropdown(true)}
                                         onBlur={() => setTimeout(() => setShowProvinceDropdown(false), 150)}
@@ -475,13 +483,15 @@ export default function FootprintPage() {
                                         placeholder="如：广东"
                                     />
                                     {showProvinceDropdown && provinceOptions.length > 0 && (
-                                        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-scroll rounded-md border border-slate-200 bg-white shadow-md">
+                                        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-scroll rounded-md border border-[color:var(--card-border)] bg-[color:var(--paper)] shadow-md">
                                             {filteredProvinces.map((p, idx) => (
                                                 <button
                                                     type="button"
                                                     key={p}
-                                                    className={`w-full text-left px-3 py-2 text-sm ${
-                                                        idx === provinceActiveIndex ? 'bg-slate-100' : 'hover:bg-slate-100'
+                                                    className={`w-full text-left px-3 py-2 text-sm text-[color:var(--ink-muted)] ${
+                                                        idx === provinceActiveIndex
+                                                            ? 'bg-[color:var(--paper-strong)] text-[color:var(--ink)]'
+                                                            : 'hover:bg-[color:var(--paper-strong)]'
                                                     }`}
                                                     onMouseDown={(e) => e.preventDefault()}
                                                     onMouseEnter={() => setProvinceActiveIndex(idx)}
@@ -496,10 +506,10 @@ export default function FootprintPage() {
                                         </div>
                                     )}
                                 </label>
-                                <label className="text-sm text-slate-600 space-y-1 relative">
+                                <label className="text-sm text-[color:var(--ink-muted)] space-y-1 relative">
                                     <span>城市</span>
                                     <input
-                                        className="w-full rounded border border-slate-200 px-2 py-1"
+                                        className="w-full rounded border border-[color:var(--card-border)] bg-[color:var(--paper)] px-2 py-1 text-[color:var(--ink)] focus:border-[color:var(--accent)]/60 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/10 disabled:text-[color:var(--ink-soft)]"
                                         value={draft.city}
                                         onFocus={() => draft.province && setShowCityDropdown(true)}
                                         onBlur={() => setTimeout(() => setShowCityDropdown(false), 150)}
@@ -535,13 +545,15 @@ export default function FootprintPage() {
                                         disabled={!draft.province}
                                     />
                                     {showCityDropdown && draft.province && filteredCities.length > 0 && (
-                                        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-scroll rounded-md border border-slate-200 bg-white shadow-md">
+                                        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-scroll rounded-md border border-[color:var(--card-border)] bg-[color:var(--paper)] shadow-md">
                                             {filteredCities.map((c, idx) => (
                                                 <button
                                                     type="button"
                                                     key={c}
-                                                    className={`w-full text-left px-3 py-2 text-sm ${
-                                                        idx === cityActiveIndex ? 'bg-slate-100' : 'hover:bg-slate-100'
+                                                    className={`w-full text-left px-3 py-2 text-sm text-[color:var(--ink-muted)] ${
+                                                        idx === cityActiveIndex
+                                                            ? 'bg-[color:var(--paper-strong)] text-[color:var(--ink)]'
+                                                            : 'hover:bg-[color:var(--paper-strong)]'
                                                     }`}
                                                     onMouseDown={(e) => e.preventDefault()}
                                                     onMouseEnter={() => setCityActiveIndex(idx)}
@@ -556,52 +568,56 @@ export default function FootprintPage() {
                                         </div>
                                     )}
                                 </label>
-                                <label className="text-sm text-slate-600 space-y-1">
+                                <label className="text-sm text-[color:var(--ink-muted)] space-y-1">
                                     <span>到访次数</span>
                                     <input
                                         type="number"
                                         min={1}
-                                        className="w-full rounded border border-slate-200 px-2 py-1"
+                                        className="w-full rounded border border-[color:var(--card-border)] bg-[color:var(--paper)] px-2 py-1 text-[color:var(--ink)] focus:border-[color:var(--accent)]/60 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/10"
                                         value={draft.visitCount}
                                         onChange={(e) => setDraft({ ...draft, visitCount: Number(e.target.value) || 1 })}
                                     />
                                 </label>
-                                <label className="text-sm text-slate-600 space-y-1">
+                                <label className="text-sm text-[color:var(--ink-muted)] space-y-1">
                                     <span>标签（逗号分隔）</span>
                                     <input
-                                        className="w-full rounded border border-slate-200 px-2 py-1"
+                                        className="w-full rounded border border-[color:var(--card-border)] bg-[color:var(--paper)] px-2 py-1 text-[color:var(--ink)] focus:border-[color:var(--accent)]/60 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/10"
                                         value={draft.tags}
                                         onChange={(e) => setDraft({ ...draft, tags: e.target.value })}
                                         placeholder="海边,美食"
                                     />
                                 </label>
-                                <label className="col-span-2 text-sm text-slate-600 space-y-1">
+                                <label className="col-span-2 text-sm text-[color:var(--ink-muted)] space-y-1">
                                     <span>首张照片链接（可选）</span>
                                     <input
-                                        className="w-full rounded border border-slate-200 px-2 py-1"
+                                        className="w-full rounded border border-[color:var(--card-border)] bg-[color:var(--paper)] px-2 py-1 text-[color:var(--ink)] focus:border-[color:var(--accent)]/60 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/10"
                                         value={draft.photoUrl}
                                         onChange={(e) => setDraft({ ...draft, photoUrl: e.target.value })}
                                         placeholder="https://..."
                                     />
                                 </label>
-                                <label className="col-span-2 text-sm text-slate-600 space-y-1">
+                                <label className="col-span-2 text-sm text-[color:var(--ink-muted)] space-y-1">
                                     <span>或上传首张照片（可选）</span>
                                     <input
                                         type="file"
                                         accept="image/*"
-                                        className="w-full rounded border border-slate-200 px-2 py-1 bg-white"
+                                        className="w-full rounded border border-[color:var(--card-border)] bg-[color:var(--paper)] px-2 py-1 text-[color:var(--ink)]"
                                         onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
                                     />
-                                    {photoFile && <div className="text-xs text-slate-500">已选择：{photoFile.name}</div>}
+                                    {photoFile && <div className="text-xs text-[color:var(--ink-soft)]">已选择：{photoFile.name}</div>}
                                 </label>
                             </div>
                             {errorMsg && <div className="text-sm text-red-600">{errorMsg}</div>}
                             <div className="flex items-center justify-end gap-2">
-                                <Button variant="ghost" onClick={() => setShowAdd(false)}>
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => setShowAdd(false)}
+                                    className="text-[color:var(--ink-muted)] hover:text-[color:var(--ink)]"
+                                >
                                     取消
                                 </Button>
                                 <Button
-                                    className="bg-indigo-600 text-white"
+                                    className="bg-[color:var(--accent)] hover:bg-[#92400e] text-white"
                                     onClick={() => {
                                         setErrorMsg(null)
                                         if (!ensureAuth()) return

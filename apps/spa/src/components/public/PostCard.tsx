@@ -1,7 +1,7 @@
-﻿import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Card } from '@repo/ui/components/ui/card'
 import { Badge } from '@repo/ui/components/ui/badge'
-import { Calendar, Eye, Clock } from 'lucide-react'
+import { ArrowUpRight, Calendar, Eye, Clock } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 export interface PostCardProps {
@@ -38,30 +38,35 @@ export function PostCard({
     const formattedDate = publishDate ? new Date(publishDate).toLocaleDateString() : '未知日期'
     const safeExcerpt = excerpt || '这篇文章还没有摘要，点击卡片查看详情。'
     const hasImage = Boolean(coverImage)
+    const shouldReduceMotion = useReducedMotion()
+    const order = String(index + 1).padStart(2, '0')
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
+            transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.5, delay: index * 0.1 }}
         >
-            <Card className="group overflow-hidden border-0 shadow-[0_20px_60px_-35px_rgba(0,0,0,0.45)] bg-white rounded-2xl p-0 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_25px_70px_-35px_rgba(0,0,0,0.55)]">
-                <Link to={buildLink(slug, categorySlugPath)} className="flex flex-col md:flex-row h-full group/card">
-                    <div className="relative w-full md:w-1/2 min-h-52 md:min-h-[220px] overflow-hidden">
+            <Card className="group h-full overflow-hidden rounded-3xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-0 shadow-[0_30px_60px_-48px_rgba(31,41,55,0.35)] transition-all duration-300 hover:-translate-y-1 hover:border-[color:var(--accent)]/40">
+                <Link to={buildLink(slug, categorySlugPath)} className="flex h-full flex-col">
+                    <div className="relative aspect-[4/3] w-full overflow-hidden">
                         {hasImage ? (
                             <img
                                 src={coverImage}
                                 alt={title}
-                                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 md:clip-slant-right group-hover/card:scale-[1.03] group-hover/card:rotate-[1.5deg]"
+                                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
                             />
                         ) : (
-                            <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 md:clip-slant-right" />
+                            <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/25 via-black/10 to-transparent md:clip-slant-right" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+                        <div className="absolute left-4 top-4 rounded-full border border-white/60 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-700">
+                            Issue {order}
+                        </div>
                     </div>
 
-                    <div className="w-full md:w-1/2 p-5 md:p-6 flex flex-col justify-between gap-3 transition-transform duration-500 group-hover/card:translate-x-1">
-                        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                    <div className="flex h-full flex-col gap-4 p-6">
+                        <div className="flex flex-wrap items-center gap-4 text-xs text-[color:var(--ink-soft)]">
                             <span className="flex items-center gap-1.5">
                                 <Calendar className="h-3.5 w-3.5" strokeWidth={1.75} />
                                 {formattedDate}
@@ -80,31 +85,32 @@ export function PostCard({
                             )}
                         </div>
 
-                        <h3 className="text-[22px] font-semibold text-pink-500 leading-snug transition-colors group-hover:text-pink-600 line-clamp-1">
+                        <h3 className="text-2xl font-display text-[color:var(--ink)] leading-snug transition-colors group-hover:text-[color:var(--accent)] line-clamp-2">
                             {title}
                         </h3>
 
-                        <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">{safeExcerpt}</p>
+                        <p className="text-sm text-[color:var(--ink-muted)] line-clamp-3 leading-relaxed">{safeExcerpt}</p>
 
-                        <div className="flex items-center justify-between">
+                        <div className="mt-auto flex flex-wrap items-center gap-2">
                             <div className="flex flex-wrap gap-1.5">
-                                {tags.map((tag) => (
+                                {tags.slice(0, 3).map((tag) => (
                                     <Badge
                                         key={tag}
                                         variant="secondary"
-                                        className="bg-slate-100 text-slate-700 hover:bg-pink-50 hover:text-pink-700 transition-colors text-xs px-2.5 py-1 rounded-full"
+                                        className="bg-[color:var(--paper-strong)] text-[color:var(--ink-muted)] border border-[color:var(--card-border)] transition-colors text-xs px-2.5 py-1 rounded-full hover:border-[color:var(--accent)]/30 hover:text-[color:var(--accent)]"
                                     >
                                         {tag}
                                     </Badge>
                                 ))}
                             </div>
-                            <button className="px-4 py-2 text-xs font-medium text-white rounded-full bg-gradient-to-r from-pink-500 to-fuchsia-500 shadow-lg shadow-pink-500/20 transition-all duration-300 hover:shadow-pink-500/35 hover:-translate-y-0.5">
-                                more...
-                            </button>
+                            <span className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-[color:var(--accent)]">
+                                阅读文章
+                                <ArrowUpRight className="h-3.5 w-3.5" />
+                            </span>
                         </div>
                     </div>
                 </Link>
             </Card>
         </motion.div>
     )
-}
+}

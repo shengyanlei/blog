@@ -12,7 +12,7 @@ export interface TagCloudProps {
 
 export function TagCloud({ tags }: TagCloudProps) {
     if (!tags.length) {
-        return <p className="text-sm text-muted-foreground">暂无标签</p>;
+        return <p className="text-sm text-[color:var(--ink-muted)]">暂无标签</p>;
     }
 
     const maxCount = Math.max(...tags.map((t) => t.count), 1);
@@ -27,14 +27,13 @@ export function TagCloud({ tags }: TagCloudProps) {
             {tags.map((tag, index) => (
                 <motion.div
                     key={tag.name}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
-                    whileHover={{ scale: 1.08 }}
                 >
                     <Badge
                         variant="secondary"
-                        className="cursor-pointer transition-all rounded-full bg-slate-50 text-slate-700 border border-slate-100 shadow-sm hover:-translate-y-0.5 hover:border-pink-200 hover:bg-pink-50 hover:text-pink-700"
+                        className="cursor-pointer transition-colors rounded-full bg-[color:var(--paper-soft)] text-[color:var(--ink-muted)] border border-[color:var(--card-border)] shadow-sm hover:border-[color:var(--accent)]/40 hover:bg-white hover:text-[color:var(--accent)]"
                         style={{ fontSize: getFontSize(tag.count), paddingInline: '0.65rem', paddingBlock: '0.35rem' }}
                     >
                         {tag.name}

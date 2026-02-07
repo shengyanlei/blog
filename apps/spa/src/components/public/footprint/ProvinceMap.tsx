@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import * as echarts from 'echarts'
 import { LocationData } from '../../../pages/public/FootprintPage'
@@ -85,7 +85,8 @@ interface ProvinceMapProps {
 const normalizeProvince = (name: string) =>
     name.replace(/省|市|特别行政区|壮族自治区|回族自治区|维吾尔自治区|自治区/g, '')
 
-const normalizeCity = (name: string | undefined) => (name || '').replace(/市|地区|盟|州|区|县|自治州$/g, '')
+const normalizeCity = (name: string | undefined) =>
+    (name || '').replace(/市|地区|盟|州|区|县|自治州|自治县|自治旗/g, '')
 
 export default function ProvinceMap({ provinceName, data, onCitySelect, onBack }: ProvinceMapProps) {
     const [geoJson, setGeoJson] = useState<any>(null)
@@ -96,7 +97,7 @@ export default function ProvinceMap({ provinceName, data, onCitySelect, onBack }
         const adcode = ADCODE_MAP[provinceName] ?? ADCODE_MAP[normalized]
 
         if (!adcode) {
-            console.error('未找到对应的行政区编码:', provinceName)
+            console.error('未找到对应的行政区编码', provinceName)
             setLoading(false)
             return
         }
@@ -115,7 +116,7 @@ export default function ProvinceMap({ provinceName, data, onCitySelect, onBack }
             })
     }, [provinceName])
 
-    const COLORS = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#2f4554']
+    const COLORS = ['#c79b6a', '#b88a62', '#9b7b5b', '#8fa89c', '#b9a374', '#a07a6a', '#7f958f', '#d0b79a', '#8d7a66', '#bca892']
 
     const getOption = () => {
         if (!geoJson) return {}
@@ -140,7 +141,7 @@ export default function ProvinceMap({ provinceName, data, onCitySelect, onBack }
                 ...f.properties,
                 itemStyle: {
                     areaColor: isVisited ? baseColor : `${baseColor}20`,
-                    borderColor: '#fff',
+                    borderColor: '#f6f1e7',
                     borderWidth: 1,
                 },
             }
@@ -154,18 +155,18 @@ export default function ProvinceMap({ provinceName, data, onCitySelect, onBack }
                     if (value > 0) {
                         return `
                         <div class="px-2 py-1">
-                            <div class="font-bold mb-1" style="color: ${params.color}">${name}</div>
-                            <div class="text-xs text-slate-600">到访：${value} 次</div>
-                            <div class="text-xs text-slate-600">照片：${extra.photoCount || 0} 张</div>
+                            <div style="color: ${params.color}; font-weight: 600; margin-bottom: 4px;">${name}</div>
+                            <div class="text-xs text-ink-muted">到访：${value} 次</div>
+                            <div class="text-xs text-ink-muted">照片：${extra.photoCount || 0} 张</div>
                         </div>
                         `
                     }
-                    return `<div class="px-2 py-1 text-slate-500">${name}（未到访）</div>`
+                    return `<div class="px-2 py-1 text-ink-muted">${name}（未到访）</div>`
                 },
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                borderColor: '#e2e8f0',
-                textStyle: { color: '#334155' },
-                extraCssText: 'box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border-radius: 8px;',
+                backgroundColor: 'rgba(251, 248, 242, 0.96)',
+                borderColor: '#e3d8c8',
+                textStyle: { color: '#1f2933' },
+                extraCssText: 'box-shadow: 0 8px 20px -12px rgba(31,41,55,0.35); border-radius: 10px;',
             },
             visualMap: { show: false },
             series: [
@@ -178,19 +179,19 @@ export default function ProvinceMap({ provinceName, data, onCitySelect, onBack }
                     scaleLimit: { min: 0.6, max: 6 },
                     label: {
                         show: true,
-                        color: '#64748b',
+                        color: '#8a8076',
                         fontSize: 10,
                         formatter: (params: any) => params.name,
                     },
                     emphasis: {
-                        label: { show: true, color: '#000', fontSize: 12, fontWeight: 'bold' },
+                        label: { show: true, color: '#1f2933', fontSize: 12, fontWeight: 'bold' },
                         itemStyle: {
-                            areaColor: '#fbbf24',
+                            areaColor: '#f1d3a2',
                             shadowBlur: 10,
-                            shadowColor: 'rgba(0, 0, 0, 0.2)',
+                            shadowColor: 'rgba(31, 41, 55, 0.2)',
                         },
                     },
-                    itemStyle: { borderColor: '#fff', borderWidth: 1 },
+                    itemStyle: { borderColor: '#f6f1e7', borderWidth: 1 },
                     select: { disabled: true },
                     data: seriesData,
                 },
@@ -208,13 +209,13 @@ export default function ProvinceMap({ provinceName, data, onCitySelect, onBack }
     }
 
     if (loading) {
-        return <div className="flex items-center justify-center h-full text-slate-400">正在加载 {provinceName} 地图...</div>
+        return <div className="flex items-center justify-center h-full text-ink-soft">正在加载 {provinceName} 地图...</div>
     }
 
     if (!geoJson) {
         return (
             <div className="flex flex-col items-center justify-center h-full gap-4">
-                <div className="text-slate-400">无法加载地图数据</div>
+                <div className="text-ink-soft">无法加载地图数据</div>
                 <Button onClick={onBack} variant="outline">
                     返回全国
                 </Button>

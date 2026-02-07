@@ -187,18 +187,23 @@ export default function CityDetail({ provinceName, cityName, data, onBack }: Cit
     }
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+        <div className="bg-[color:var(--paper-soft)] rounded-2xl shadow-[0_28px_55px_-40px_rgba(31,41,55,0.35)] border border-[color:var(--card-border)] p-6">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 text-slate-600">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onBack}
+                        className="gap-1 text-[color:var(--ink-muted)] hover:text-[color:var(--ink)]"
+                    >
                         <ArrowLeft className="h-4 w-4" /> 返回
                     </Button>
                     <div>
-                        <div className="text-xl font-bold text-slate-800">{cityName}</div>
-                        <div className="text-sm text-slate-600">
+                        <div className="text-xl font-semibold text-[color:var(--ink)] font-display">{cityName}</div>
+                        <div className="text-sm text-[color:var(--ink-muted)]">
                             到访 {data?.visitCount ?? 0} 次 · {data?.photoCount ?? 0} 张照片 · 最近 {data?.lastVisited ?? '--'}
                         </div>
-                        <div className="flex items-center gap-2 text-slate-500 text-sm">
+                        <div className="flex items-center gap-2 text-[color:var(--ink-soft)] text-sm">
                             <Calendar className="h-4 w-4" />
                             <span>省份：{provinceName}</span>
                         </div>
@@ -207,7 +212,7 @@ export default function CityDetail({ provinceName, cityName, data, onBack }: Cit
             </div>
 
             <div
-                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-6 border-2 border-dashed rounded-xl p-4 min-h-[160px]"
+                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-6 border-2 border-dashed border-[color:var(--card-border)] rounded-xl p-4 min-h-[160px] bg-[color:var(--paper)]/40"
                 onDrop={onDrop}
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
@@ -219,7 +224,7 @@ export default function CityDetail({ provinceName, cityName, data, onBack }: Cit
                         onClick={() => openLightbox(index)}
                         className="relative group [perspective:1200px] h-36 focus:outline-none"
                     >
-                        <div className="relative w-full h-full rounded-xl border border-slate-200 shadow-sm overflow-hidden [transform-style:preserve-3d]">
+                        <div className="relative w-full h-full rounded-xl border border-[color:var(--card-border)] shadow-[0_18px_40px_-30px_rgba(31,41,55,0.25)] overflow-hidden [transform-style:preserve-3d]">
                             <div className="absolute inset-0 transition-transform duration-500 [transform:rotateY(0deg)] [backface-visibility:hidden] group-hover:[transform:rotateY(180deg)]">
                                 <img
                                     src={renderPhotoUrl(photo.url)}
@@ -233,12 +238,12 @@ export default function CityDetail({ provinceName, cityName, data, onBack }: Cit
                                 </div>
                             </div>
 
-                            <div className="absolute inset-0 transition-transform duration-500 [transform:rotateY(180deg)] group-hover:[transform:rotateY(0deg)] [backface-visibility:hidden] bg-white text-slate-800 p-3 flex flex-col justify-between">
+                            <div className="absolute inset-0 transition-transform duration-500 [transform:rotateY(180deg)] group-hover:[transform:rotateY(0deg)] [backface-visibility:hidden] bg-[color:var(--paper-soft)] text-[color:var(--ink)] p-3 flex flex-col justify-between">
                                 <div className="flex items-start justify-between gap-2">
-                                    <div className="text-xs uppercase tracking-widest text-indigo-500 font-semibold">Postcard</div>
+                                    <div className="text-xs uppercase tracking-widest text-[color:var(--accent)] font-semibold">Postcard</div>
                                     <button
                                         type="button"
-                                        className="rounded-full bg-white/90 shadow px-1.5 py-1 text-slate-600 hover:text-slate-900 hover:bg-white"
+                                        className="rounded-full bg-[color:var(--paper)]/90 shadow px-1.5 py-1 text-[color:var(--ink-soft)] hover:text-[color:var(--ink)] hover:bg-[color:var(--paper)]"
                                         onClick={(e) => {
                                             e.stopPropagation()
                                             openEdit(photo)
@@ -250,7 +255,7 @@ export default function CityDetail({ provinceName, cityName, data, onBack }: Cit
                                 <div className="text-sm leading-snug h-20 overflow-hidden">
                                     {photo.note?.trim() || '还没有写下这张照片的备注，点击右上角编辑吧。'}
                                 </div>
-                                <div className="text-xs text-slate-500 flex items-center justify-between pt-2 border-t border-slate-200">
+                                <div className="text-xs text-[color:var(--ink-soft)] flex items-center justify-between pt-2 border-t border-[color:var(--card-border)]">
                                     <span>{photo.shotAt || '—'}</span>
                                     <span className="truncate">{photo.tags || '旅途札记'}</span>
                                 </div>
@@ -259,7 +264,9 @@ export default function CityDetail({ provinceName, cityName, data, onBack }: Cit
                     </button>
                 ))}
                 {photos.length === 0 && (
-                    <div className="col-span-full text-center text-slate-400 py-10">暂无照片，拖拽到这里或点击上传</div>
+                    <div className="col-span-full text-center text-[color:var(--ink-soft)] py-10">
+                        暂无照片，拖拽到这里或点击上传
+                    </div>
                 )}
                 <input
                     ref={fileInputRef}
@@ -272,45 +279,59 @@ export default function CityDetail({ provinceName, cityName, data, onBack }: Cit
                 <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className={`col-span-full mt-2 text-sm text-indigo-600 hover:text-indigo-700 border border-dashed rounded-lg py-2 ${
-                        dragOver ? 'bg-indigo-50 border-indigo-300' : 'border-slate-200'
+                    className={`col-span-full mt-2 text-sm text-[color:var(--accent)] hover:text-[#92400e] border border-dashed rounded-lg py-2 transition-colors ${
+                        dragOver
+                            ? 'bg-[color:var(--paper-strong)] border-[color:var(--accent)]/40'
+                            : 'border-[color:var(--card-border)]'
                     }`}
                 >
                     {addPhotosMutation.isLoading ? '上传中...' : '点击选择图片或拖拽到区域'}
                 </button>
             </div>
-            {uploadHint && <div className="text-sm text-slate-500 mt-2">{uploadHint}</div>}
+            {uploadHint && <div className="text-sm text-[color:var(--ink-soft)] mt-2">{uploadHint}</div>}
 
             {editingPhoto && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4" onClick={() => setEditingPhoto(null)}>
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+                    onClick={() => setEditingPhoto(null)}
+                >
                     <div
-                        className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl space-y-4"
+                        className="w-full max-w-md rounded-2xl bg-[color:var(--paper-soft)] p-5 shadow-2xl space-y-4"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between">
                             <div>
-                                <div className="text-base font-semibold text-slate-900">编辑照片备注</div>
-                                <div className="text-xs text-slate-500">城市 {cityName} · {editingPhoto.shotAt || '日期未知'}</div>
+                                <div className="text-base font-semibold text-[color:var(--ink)]">编辑照片备注</div>
+                                <div className="text-xs text-[color:var(--ink-soft)]">
+                                    城市 {cityName} · {editingPhoto.shotAt || '日期未知'}
+                                </div>
                             </div>
-                            <button className="text-slate-500 hover:text-slate-700" onClick={() => setEditingPhoto(null)}>
+                            <button
+                                className="text-[color:var(--ink-soft)] hover:text-[color:var(--ink)]"
+                                onClick={() => setEditingPhoto(null)}
+                            >
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm text-slate-700">明信片文字</label>
+                            <label className="text-sm text-[color:var(--ink-muted)]">明信片文字</label>
                             <textarea
                                 value={noteDraft}
                                 onChange={(e) => setNoteDraft(e.target.value)}
-                                className="w-full rounded-lg border border-slate-200 p-3 text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 min-h-[120px]"
+                                className="w-full rounded-lg border border-[color:var(--card-border)] bg-[color:var(--paper)] p-3 text-sm focus:ring-2 focus:ring-[color:var(--accent)]/10 focus:border-[color:var(--accent)]/60 min-h-[120px]"
                                 placeholder="写下一段旅行的记忆..."
                             />
                         </div>
                         <div className="flex justify-end gap-2">
-                            <Button variant="ghost" onClick={() => setEditingPhoto(null)}>
+                            <Button
+                                variant="ghost"
+                                onClick={() => setEditingPhoto(null)}
+                                className="text-[color:var(--ink-muted)] hover:text-[color:var(--ink)]"
+                            >
                                 取消
                             </Button>
                             <Button
-                                className="bg-indigo-600 text-white"
+                                className="bg-[color:var(--accent)] hover:bg-[#92400e] text-white"
                                 disabled={updateNoteMutation.isLoading}
                                 onClick={() => {
                                     if (!editingPhoto?.id) return
@@ -335,7 +356,7 @@ export default function CityDetail({ provinceName, cityName, data, onBack }: Cit
                             onClick={(e) => e.stopPropagation()}
                         >
                             <button
-                                className="absolute right-4 top-4 text-white hover:text-slate-200 z-10"
+                                className="absolute right-4 top-4 text-white/80 hover:text-white z-10"
                                 onClick={closeLightbox}
                             >
                                 <X className="h-6 w-6" />
@@ -348,22 +369,22 @@ export default function CityDetail({ provinceName, cityName, data, onBack }: Cit
                             />
 
                             <div className="absolute inset-y-0 left-0 flex items-center">
-                                <button className="p-2 text-white hover:text-indigo-200" onClick={handlePrev}>
+                                <button className="p-2 text-white/80 hover:text-amber-200" onClick={handlePrev}>
                                     <ChevronLeft className="h-8 w-8" />
                                 </button>
                             </div>
                             <div className="absolute inset-y-0 right-0 flex items-center">
-                                <button className="p-2 text-white hover:text-indigo-200" onClick={handleNext}>
+                                <button className="p-2 text-white/80 hover:text-amber-200" onClick={handleNext}>
                                     <ChevronRight className="h-8 w-8" />
                                 </button>
                             </div>
 
-                            <div className="mt-3 text-white text-sm flex items-center gap-2">
+                            <div className="mt-3 text-white/80 text-sm flex items-center gap-2">
                                 <MapPin className="h-4 w-4" />
                                 <span>
                                     {provinceName} · {cityName}
                                 </span>
-                                <span>|</span>
+                                <span>·</span>
                                 <Calendar className="h-4 w-4" />
                                 <span>{photos[selectedPhotoIndex].shotAt || ''}</span>
                             </div>

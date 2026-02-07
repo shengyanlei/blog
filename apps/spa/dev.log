@@ -44,3 +44,7 @@
 [2m22:54:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/public/FootprintPage.tsx, /src/index.css[22m
 [2m22:55:12[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/public/FootprintPage.tsx, /src/index.css[22m
 [2m22:56:26[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/public/FootprintPage.tsx, /src/index.css[22m
+undefined
+ ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command "vite" not found
+
+Did you mean "pnpm exec vite"?

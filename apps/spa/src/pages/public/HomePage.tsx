@@ -1,28 +1,74 @@
-import { useMemo, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useMemo, useState, type CSSProperties } from 'react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { ArrowUpRight, BookOpen, MapPin, User } from 'lucide-react'
 import { PostCard } from '../../components/public/PostCard'
 import { CategoryCard } from '../../components/public/CategoryCard'
 import { SearchBar } from '../../components/public/SearchBar'
 import { TagCloud } from '../../components/public/TagCloud'
-import { Card, CardContent } from '@repo/ui/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@repo/ui/components/ui/avatar'
-import { Separator } from '@repo/ui/components/ui/separator'
 import { useHeroCarousel } from '../../hooks/useHeroCarousel'
 import { api, unwrapResponse } from '../../lib/api'
 import type { ApiResponse } from '../../lib/api'
 import type { ArticleSummary, Category, Tag as TagDto, PageResult } from '../../types/api'
 
 const coverImageFor = (seed: number) =>
-    `https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1200&q=80&auto=format&fit=crop&sig=${seed}`
+    `https://images.unsplash.com/photo-1482192596544-9eb780fc7f66?w=1400&q=80&auto=format&fit=crop&sig=${seed}`
+
+const buildPostLink = (slug: string, categorySlugPath?: string) => {
+    const normalized = categorySlugPath?.replace(/^\/+|\/+$/g, '')
+    return normalized ? `/post/${normalized}/${slug}` : `/post/${slug}`
+}
+
+const formatDate = (value?: string) => {
+    if (!value) return '待发布'
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? '待发布' : date.toLocaleDateString()
+}
 
 export default function HomePage() {
-    const { currentImage, currentImageIndex } = useHeroCarousel()
+    const { currentImage } = useHeroCarousel()
     const [searchParams, setSearchParams] = useSearchParams()
     const [keyword, setKeyword] = useState(searchParams.get('q') ?? '')
     const categoryIdParam = searchParams.get('categoryId')
     const categoryId = categoryIdParam ? Number(categoryIdParam) : undefined
+    const shouldReduceMotion = useReducedMotion()
+
+    const themeStyles = useMemo(
+        () =>
+            ({
+                '--paper': '#f6f1e7',
+                '--paper-soft': '#fbf8f2',
+                '--paper-strong': '#efe6d7',
+                '--ink': '#1f2933',
+                '--ink-muted': '#6b6157',
+                '--ink-soft': '#8a8076',
+                '--accent': '#b45309',
+                '--teal': '#0f766e',
+                '--card-border': '#e3d8c8',
+                '--shadow-soft': '0 32px 60px -44px rgba(31, 41, 55, 0.35)',
+                '--font-display': '"Libre Bodoni", "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", "Times New Roman", serif',
+                '--font-body': '"Public Sans", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif',
+            }) as CSSProperties,
+        []
+    )
+
+    const paperPattern = useMemo(
+        () =>
+            ({
+                backgroundImage:
+                    'radial-gradient(circle at 12% 18%, rgba(180, 83, 9, 0.12), transparent 45%), radial-gradient(circle at 88% 0%, rgba(15, 118, 110, 0.12), transparent 40%), linear-gradient(transparent 93%, rgba(31, 41, 55, 0.04) 93%), linear-gradient(90deg, transparent 93%, rgba(31, 41, 55, 0.04) 93%)',
+                backgroundSize: '280px 280px, 320px 320px, 32px 32px, 32px 32px',
+            }) as CSSProperties,
+        []
+    )
+
+    const heroMotion = shouldReduceMotion
+        ? {}
+        : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.6 } }
+
+    const imageTransition = { duration: shouldReduceMotion ? 0 : 0.8 }
 
     const { data: articlePage, isLoading: loadingArticles } = useQuery({
         queryKey: ['articles', { keyword, categoryId }],
@@ -40,8 +86,10 @@ export default function HomePage() {
     })
 
     const articles = articlePage?.content ?? []
-    const pinnedPost = articles[0]
-    const otherArticles = articles.slice(1)
+    const featuredPost = articles[0]
+    const latestPosts = featuredPost ? articles.slice(1) : articles
+    const spotlightPosts = latestPosts.slice(0, 3)
+    const featuredImage = featuredPost ? coverImageFor(featuredPost.id) : currentImage
 
     const { data: categories = [] } = useQuery({
         queryKey: ['categories'],
@@ -80,216 +128,371 @@ export default function HomePage() {
     }
 
     return (
-        <div className="relative min-h-screen bg-gray-50">
-            <section className="relative min-h-[70vh] text-white pt-24 pb-16 px-4 md:px-10 overflow-hidden flex items-center">
-                <div className="absolute inset-0 z-0">
-                    <AnimatePresence initial={false}>
-                        <motion.div
-                            key={currentImageIndex}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 2, ease: [0.43, 0.13, 0.23, 0.96] }}
-                            className="absolute inset-0"
-                            style={{
-                                backgroundImage: `url(${currentImage})`,
-                                backgroundSize: 'cover',
-                                backgroundPosition: 'center',
-                            }}
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-b from-slate-900/75 via-slate-900/45 to-slate-900/80 backdrop-blur-[1px]" />
-                        </motion.div>
-                    </AnimatePresence>
-                </div>
+        <div className="relative min-h-screen font-body bg-paper text-[color:var(--ink)]" style={themeStyles}>
+            <div className="pointer-events-none absolute inset-0 opacity-70" style={paperPattern} />
 
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8 }}
-                    className="container relative z-10 max-w-4xl text-center space-y-4"
-                >
-                    <p className="text-sm uppercase tracking-[0.3em] text-white/70">Personal Blog</p>
-                    <h1 className="text-5xl md:text-7xl font-bold tracking-wide drop-shadow-[0_10px_30px_rgba(0,0,0,0.45)]">
-                        碎念随风
-                    </h1>
-                    <p className="text-2xl text-white/90 drop-shadow-md max-w-4xl mx-auto leading-relaxed">
-                        人海未见之时，我亦独行在这城市。 料峭，春醒，酷暑，骤雨，寒意四起，大雁南飞，而后，大雪，寒风， 斗转星移，人间寒暑。
-                    </p>
-                    <div className="pt-6">
-                        <SearchBar value={keyword} onChange={setKeyword} onSubmit={handleSearch} />
-                    </div>
-                </motion.div>
-
-                <div className="absolute top-20 right-16 w-28 h-28 bg-pink-400/25 rounded-full blur-3xl animate-float" />
-                <div
-                    className="absolute bottom-10 left-16 w-48 h-48 bg-purple-400/20 rounded-full blur-3xl animate-float"
-                    style={{ animationDelay: '2s' }}
-                />
-            </section>
-
-            <div className="wave-divider">
-                <svg viewBox="0 0 1200 160" preserveAspectRatio="none">
-                    <path
-                        d="M0,96l40-10.7C80,75,160,53,240,64s160,64,240,80,160,0,240-16,160-32,240-42.7C1040,74,1120,74,1160,74.7L1200,75v85H0Z"
-                        className="shape-fill"
-                    />
-                </svg>
-            </div>
-
-            <section className="relative bg-white -mt-8 rounded-t-[48px] shadow-[0_-30px_60px_-40px_rgba(0,0,0,0.45)]">
-                <div className="container mx-auto px-4 md:px-6 py-16 max-w-7xl">
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                        <div className="lg:col-span-3 space-y-10">
-                            <div>
-                                <h2 className="text-xl text-gray-400 text-center mb-6 font-light tracking-wider">
-                                    置顶文章
-                                </h2>
-                                {loadingArticles ? (
-                                    <p className="text-center text-muted-foreground">加载中...</p>
-                                ) : pinnedPost ? (
-                                    <PostCard
-                                        id={pinnedPost.id}
-                                        title={pinnedPost.title}
-                                        excerpt={pinnedPost.summary}
-                                        slug={pinnedPost.slug}
-                                        categorySlugPath={pinnedPost.category?.slugPath}
-                                        coverImage={coverImageFor(pinnedPost.id)}
-                                        tags={pinnedPost.tags?.map((t) => t.name)}
-                                        publishDate={pinnedPost.publishedAt}
-                                        views={pinnedPost.views}
-                                        index={0}
-                                    />
-                                ) : (
-                                    <p className="text-center text-muted-foreground">暂无文章</p>
-                                )}
+            <section className="relative px-4 pt-24 pb-14 md:px-10">
+                <div className="mx-auto max-w-6xl">
+                    <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.4em] text-[color:var(--ink-soft)]">
+                                <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--accent)]" />
+                                Glacier Log
                             </div>
-
-                            <div>
-                                <h2 className="text-xl text-gray-400 text-center mb-6 font-light tracking-wider">
-                                    精选分类
-                                </h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {categories.slice(0, 4).map((category, index) => (
-                                        <CategoryCard
-                                            key={category.id}
-                                            id={category.id}
-                                            name={category.name}
-                                            description={category.description}
-                                            index={index}
-                                        />
-                                    ))}
-                                </div>
+                            <h1 className="text-[clamp(2.75rem,5vw,5rem)] font-display leading-[1.05]">
+                                霜蓝札记
+                            </h1>
+                            <p className="max-w-xl text-base md:text-lg text-[color:var(--ink-muted)] leading-relaxed first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:text-4xl first-letter:leading-none first-letter:font-display first-letter:text-[color:var(--accent)]">
+                                在设计、代码与慢旅行之间，收集清冷的观察与技术笔记，把灵感写成可以回访的地标。
+                            </p>
+                            <SearchBar
+                                value={keyword}
+                                onChange={setKeyword}
+                                onSubmit={handleSearch}
+                                className="max-w-xl"
+                                tone="paper"
+                                placeholder="搜索文章、主题或城市..."
+                            />
+                            <div className="flex flex-wrap items-center gap-3 text-xs">
+                                <Link
+                                    to="/archive"
+                                    className="rounded-full border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] px-4 py-2 font-semibold text-[color:var(--ink)] transition-colors hover:border-[color:var(--accent)]/40 hover:text-[color:var(--accent)]"
+                                >
+                                    浏览归档
+                                </Link>
+                                <Link
+                                    to="/about"
+                                    className="rounded-full bg-[color:var(--ink)] px-4 py-2 font-semibold text-[color:var(--paper-soft)] transition-colors hover:bg-black"
+                                >
+                                    关于我
+                                </Link>
+                                <Link
+                                    to="/footprint"
+                                    className="rounded-full border border-[color:var(--card-border)] px-4 py-2 font-semibold text-[color:var(--ink-muted)] transition-colors hover:border-[color:var(--accent)]/40 hover:text-[color:var(--accent)]"
+                                >
+                                    足迹记录
+                                </Link>
                             </div>
-
-                            <div>
-                                <h2 className="text-xl text-gray-400 text-center mb-6 font-light tracking-wider">
-                                    文章列表
-                                </h2>
-                                {loadingArticles ? (
-                                    <p className="text-center text-muted-foreground">加载中...</p>
-                                ) : (
-                                    <div className="space-y-5">
-                                        {otherArticles.map((post, index) => (
-                                            <PostCard
-                                                key={post.id}
-                                                id={post.id}
-                                                title={post.title}
-                                                excerpt={post.summary}
-                                                slug={post.slug}
-                                                categorySlugPath={post.category?.slugPath}
-                                                coverImage={coverImageFor(post.id)}
-                                                tags={post.tags?.map((t) => t.name)}
-                                                publishDate={post.publishedAt}
-                                                views={post.views}
-                                                index={index}
-                                            />
-                                        ))}
-                                        {!otherArticles.length && pinnedPost && (
-                                            <p className="text-center text-muted-foreground">仅有一篇置顶文章</p>
-                                        )}
-                                        {!articles.length && !loadingArticles && (
-                                            <p className="text-center text-muted-foreground">暂无文章，稍后再来。</p>
-                                        )}
+                            <div className="grid grid-cols-3 gap-3 text-xs text-[color:var(--ink-muted)]">
+                                <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] px-4 py-3">
+                                    <div className="text-lg font-semibold text-[color:var(--ink)]">
+                                        {articlePage?.totalElements ?? 0}
                                     </div>
-                                )}
+                                    <div>篇文章</div>
+                                </div>
+                                <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] px-4 py-3">
+                                    <div className="text-lg font-semibold text-[color:var(--ink)]">
+                                        {categories.length}
+                                    </div>
+                                    <div>类目</div>
+                                </div>
+                                <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] px-4 py-3">
+                                    <div className="text-lg font-semibold text-[color:var(--ink)]">{tags.length}</div>
+                                    <div>标签</div>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="lg:col-span-1">
-                            <div className="sticky top-24 space-y-6">
-                                <motion.div
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.3 }}
-                                >
-                                    <Card className="text-center card-hover border-0 shadow-lg">
-                                        <CardContent className="pt-6">
-                                            <Avatar className="w-20 h-20 mx-auto mb-3">
-                                                <AvatarImage src="https://avatars.githubusercontent.com/u/1?v=4" />
-                                                <AvatarFallback>SY</AvatarFallback>
-                                            </Avatar>
-                                            <h3 className="text-lg font-bold mb-2">shyl</h3>
-                                            <p className="text-xs text-muted-foreground mb-3 line-clamp-3">
-                                                人海未见之时，我亦独行在这座城市。料峭春寒，簌簌骤雨，寒意四起，大雁南飞，路还长。
-                                            </p>
-                                            <div className="flex justify-center gap-6 text-xs">
-                                                <div>
-                                                    <div className="font-bold text-base">{articlePage?.totalElements ?? 0}</div>
-                                                    <div className="text-muted-foreground">文章</div>
-                                                </div>
-                                                <div>
-                                                    <div className="font-bold text-base">{categories.length}</div>
-                                                    <div className="text-muted-foreground">分类</div>
-                                                </div>
-                                                <div>
-                                                    <div className="font-bold text-base">{tags.length}</div>
-                                                    <div className="text-muted-foreground">标签</div>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </motion.div>
-
-                                <motion.div
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.35 }}
-                                    className="space-y-2"
-                                >
-                                    <div className="rounded-2xl border border-slate-100 bg-white/90 shadow-md p-3 space-y-2">
-                                        <Link to="/about" className="block">
-                                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20 transition-all duration-300 hover:shadow-pink-500/35 hover:-translate-y-0.5">
-                                                <span>💬</span>
-                                                <span>关于我</span>
-                                            </button>
-                                        </Link>
-                                        <Link to="/archive" className="block">
-                                            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-sky-500 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 transition-all duration-300 hover:shadow-sky-500/35 hover:-translate-y-0.5">
-                                                <span>📚</span>
-                                                <span>文章归档</span>
-                                            </button>
+                        <div className="space-y-6">
+                            <motion.div
+                                {...heroMotion}
+                                className="overflow-hidden rounded-[28px] border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] shadow-[0_35px_70px_-55px_rgba(31,41,55,0.5)]"
+                            >
+                                <div className="relative h-48 md:h-56">
+                                    {featuredImage ? (
+                                        <AnimatePresence initial={false}>
+                                            <motion.div
+                                                key={featuredImage}
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                transition={imageTransition}
+                                                className="absolute inset-0 bg-cover bg-center"
+                                                style={{ backgroundImage: `url(${featuredImage})` }}
+                                            />
+                                        </AnimatePresence>
+                                    ) : (
+                                        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950" />
+                                    )}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                                    <div className="absolute left-5 top-5 rounded-full border border-white/60 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-700">
+                                        Featured
+                                    </div>
+                                </div>
+                                <div className="space-y-4 p-6">
+                                    <h3 className="text-2xl font-display text-[color:var(--ink)]">
+                                        {featuredPost?.title ?? '欢迎来到霜蓝札记'}
+                                    </h3>
+                                    <p className="text-sm text-[color:var(--ink-muted)] line-clamp-2">
+                                        {featuredPost?.summary ?? '用清晰的记录沉淀灵感与实践。'}
+                                    </p>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {(featuredPost?.tags ?? []).slice(0, 3).map((tag) => (
+                                            <span
+                                                key={tag.name}
+                                                className="rounded-full border border-[color:var(--card-border)] bg-[color:var(--paper-strong)] px-3 py-1 text-xs text-[color:var(--ink-muted)]"
+                                            >
+                                                {tag.name}
+                                            </span>
+                                        ))}
+                                        <Link
+                                            to={
+                                                featuredPost
+                                                    ? buildPostLink(featuredPost.slug, featuredPost.category?.slugPath)
+                                                    : '/archive'
+                                            }
+                                            className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-[color:var(--accent)]"
+                                        >
+                                            阅读
+                                            <ArrowUpRight className="h-3.5 w-3.5" />
                                         </Link>
                                     </div>
-                                </motion.div>
+                                </div>
+                            </motion.div>
 
-                                <motion.div
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.4 }}
-                                >
-                                    <Card className="card-hover border-0 shadow-lg">
-                                        <CardContent className="pt-6">
-                                            <h3 className="text-base font-bold mb-3">精选标签</h3>
-                                            <Separator className="mb-3" />
-                                            <TagCloud tags={tagCloud} />
-                                        </CardContent>
-                                    </Card>
-                                </motion.div>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-5 shadow-[0_20px_50px_-40px_rgba(31,41,55,0.35)]">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-[11px] uppercase tracking-[0.3em] text-[color:var(--ink-soft)]">
+                                            Reading Queue
+                                        </p>
+                                        <span className="text-xs text-[color:var(--ink-soft)]">
+                                            {spotlightPosts.length} 篇
+                                        </span>
+                                    </div>
+                                    <div className="mt-4 space-y-3">
+                                        {loadingArticles ? (
+                                            <p className="text-sm text-[color:var(--ink-muted)]">加载中...</p>
+                                        ) : spotlightPosts.length ? (
+                                            spotlightPosts.map((post, index) => (
+                                                <Link
+                                                    key={post.id}
+                                                    to={buildPostLink(post.slug, post.category?.slugPath)}
+                                                    className="group flex items-start gap-3 rounded-xl border border-[color:var(--card-border)] bg-white/70 p-3 transition-colors hover:border-[color:var(--accent)]/40"
+                                                >
+                                                    <span className="text-xs font-semibold text-[color:var(--ink-soft)]">
+                                                        {String(index + 1).padStart(2, '0')}
+                                                    </span>
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-[color:var(--ink)] group-hover:text-[color:var(--accent)] line-clamp-1">
+                                                            {post.title}
+                                                        </p>
+                                                        <p className="text-xs text-[color:var(--ink-muted)]">
+                                                            {formatDate(post.publishedAt)}
+                                                        </p>
+                                                    </div>
+                                                </Link>
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-[color:var(--ink-muted)]">暂无推荐文章</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-5 shadow-[0_20px_50px_-40px_rgba(31,41,55,0.35)]">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--ink)] text-[color:var(--paper-soft)]">
+                                            <BookOpen className="h-4 w-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[11px] uppercase tracking-[0.3em] text-[color:var(--ink-soft)]">
+                                                Archive
+                                            </p>
+                                            <h3 className="text-lg font-display text-[color:var(--ink)]">深度归档</h3>
+                                        </div>
+                                    </div>
+                                    <p className="mt-4 text-sm text-[color:var(--ink-muted)]">
+                                        以时间线和专题维度浏览全部文章。
+                                    </p>
+                                    <Link
+                                        to="/archive"
+                                        className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[color:var(--accent)]"
+                                    >
+                                        进入归档
+                                        <ArrowUpRight className="h-3.5 w-3.5" />
+                                    </Link>
+                                </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section className="relative px-4 pb-16 md:px-10">
+                <div className="mx-auto max-w-6xl grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
+                    <div className="space-y-6">
+                        <div className="flex items-end justify-between border-b border-[color:var(--card-border)] pb-3">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.4em] text-[color:var(--ink-soft)]">
+                                    Collections
+                                </p>
+                                <h2 className="text-2xl font-display text-[color:var(--ink)]">主题合集</h2>
+                            </div>
+                            <Link
+                                to="/archive"
+                                className="text-xs text-[color:var(--ink-muted)] transition-colors hover:text-[color:var(--accent)]"
+                            >
+                                查看全部
+                            </Link>
+                        </div>
+                        <div className="grid gap-6 sm:grid-cols-2">
+                            {categories.slice(0, 4).map((category, index) => (
+                                <CategoryCard
+                                    key={category.id}
+                                    id={category.id}
+                                    name={category.name}
+                                    description={category.description}
+                                    index={index}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-6 shadow-[0_20px_50px_-40px_rgba(31,41,55,0.35)]">
+                            <div className="flex items-center gap-4">
+                                <Avatar className="h-14 w-14 border border-[color:var(--card-border)] bg-white">
+                                    <AvatarImage src="https://avatars.githubusercontent.com/u/1?v=4" />
+                                    <AvatarFallback>SY</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <p className="text-[11px] uppercase tracking-[0.3em] text-[color:var(--ink-soft)]">
+                                        Author
+                                    </p>
+                                    <h3 className="text-lg font-display text-[color:var(--ink)]">shyl</h3>
+                                    <p className="text-xs text-[color:var(--ink-muted)]">
+                                        用视觉与文字记录理性与感性的交汇。
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                                <Link
+                                    to="/about"
+                                    className="rounded-full border border-[color:var(--card-border)] bg-white px-3 py-1.5 font-semibold text-[color:var(--ink)] transition-colors hover:border-[color:var(--accent)]/40 hover:text-[color:var(--accent)]"
+                                >
+                                    了解作者
+                                </Link>
+                                <Link
+                                    to="/about"
+                                    className="rounded-full border border-[color:var(--card-border)] bg-[color:var(--paper-strong)] px-3 py-1.5 font-semibold text-[color:var(--ink-muted)] transition-colors hover:border-[color:var(--accent)]/40 hover:text-[color:var(--accent)]"
+                                >
+                                    合作方式
+                                </Link>
+                            </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-6 shadow-[0_20px_50px_-40px_rgba(31,41,55,0.35)]">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-[11px] uppercase tracking-[0.3em] text-[color:var(--ink-soft)]">
+                                        Tags
+                                    </p>
+                                    <h3 className="text-lg font-display text-[color:var(--ink)]">关键词地图</h3>
+                                </div>
+                            </div>
+                            <div className="mt-4">
+                                <TagCloud tags={tagCloud} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section className="relative px-4 pb-16 md:px-10">
+                <div className="mx-auto max-w-6xl">
+                    <div className="flex items-end justify-between border-b border-[color:var(--card-border)] pb-3">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.4em] text-[color:var(--ink-soft)]">Latest</p>
+                            <h2 className="text-2xl font-display text-[color:var(--ink)]">最新文章</h2>
+                        </div>
+                        <span className="text-xs text-[color:var(--ink-soft)]">共 {articles.length} 篇</span>
+                    </div>
+                    <div className="mt-8">
+                        {loadingArticles ? (
+                            <p className="text-sm text-[color:var(--ink-muted)]">加载中...</p>
+                        ) : latestPosts.length ? (
+                            <div className="grid gap-6 md:grid-cols-2">
+                                {latestPosts.map((post, index) => (
+                                    <PostCard
+                                        key={post.id}
+                                        id={post.id}
+                                        title={post.title}
+                                        excerpt={post.summary}
+                                        slug={post.slug}
+                                        categorySlugPath={post.category?.slugPath}
+                                        coverImage={coverImageFor(post.id)}
+                                        tags={post.tags?.map((t) => t.name)}
+                                        publishDate={post.publishedAt}
+                                        views={post.views}
+                                        index={index}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-[color:var(--ink-muted)]">暂无文章，稍后再来。</p>
+                        )}
+                    </div>
+                </div>
+            </section>
+
+            <section className="relative px-4 pb-24 md:px-10">
+                <div className="mx-auto max-w-6xl grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
+                    <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-6 shadow-[0_20px_50px_-40px_rgba(31,41,55,0.35)]">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--ink)] text-[color:var(--paper-soft)]">
+                                <MapPin className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-[0.3em] text-[color:var(--ink-soft)]">
+                                    Footprint
+                                </p>
+                                <h3 className="text-lg font-display text-[color:var(--ink)]">城市足迹</h3>
+                            </div>
+                        </div>
+                        <p className="mt-4 text-sm text-[color:var(--ink-muted)]">
+                            将旅行、展览与日常路径叠加成一张时序地图。
+                        </p>
+                        <Link
+                            to="/footprint"
+                            className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[color:var(--accent)]"
+                        >
+                            查看足迹
+                            <ArrowUpRight className="h-3.5 w-3.5" />
+                        </Link>
+                    </div>
+
+                    <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-6 shadow-[0_20px_50px_-40px_rgba(31,41,55,0.35)]">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--ink)] text-[color:var(--paper-soft)]">
+                                <User className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <p className="text-[11px] uppercase tracking-[0.3em] text-[color:var(--ink-soft)]">
+                                    Contact
+                                </p>
+                                <h3 className="text-lg font-display text-[color:var(--ink)]">合作与交流</h3>
+                            </div>
+                        </div>
+                        <p className="mt-4 text-sm text-[color:var(--ink-muted)]">
+                            欢迎分享想法或提出合作需求。
+                        </p>
+                        <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                            <Link
+                                to="/about"
+                                className="rounded-full border border-[color:var(--card-border)] bg-white px-3 py-1.5 font-semibold text-[color:var(--ink)] transition-colors hover:border-[color:var(--accent)]/40 hover:text-[color:var(--accent)]"
+                            >
+                                联系方式
+                            </Link>
+                            <Link
+                                to="/about"
+                                className="rounded-full border border-[color:var(--card-border)] bg-[color:var(--paper-strong)] px-3 py-1.5 font-semibold text-[color:var(--ink-muted)] transition-colors hover:border-[color:var(--accent)]/40 hover:text-[color:var(--accent)]"
+                            >
+                                项目协作
+                            </Link>
                         </div>
                     </div>
                 </div>
             </section>
         </div>
     )
-}
+}

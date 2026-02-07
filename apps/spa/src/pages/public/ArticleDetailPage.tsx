@@ -1,22 +1,19 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+    ArrowLeft,
     Calendar,
+    ChevronUp,
+    Clock,
     Eye,
+    Hash,
+    List,
     MessageSquare,
     Send,
-    Sparkles,
     User,
-    Hash,
-    Clock,
-    ArrowLeft,
-    List,
-    ChevronUp,
-    Maximize2,
-    Minimize2,
 } from 'lucide-react'
-import { motion, useScroll, useSpring, useTransform, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion, useScroll, useSpring } from 'framer-motion'
 import { Badge } from '@repo/ui/components/ui/badge'
 import { Button } from '@repo/ui/components/ui/button'
 import MarkdownPreview from '@uiw/react-markdown-preview'
@@ -24,6 +21,9 @@ import '@uiw/react-markdown-preview/markdown.css'
 import { api, unwrapResponse } from '../../lib/api'
 import type { ApiResponse } from '../../lib/api'
 import type { ArticleDetail, Comment } from '../../types/api'
+
+const coverImageFor = (seed: number) =>
+    `https://images.unsplash.com/photo-1482192596544-9eb780fc7f66?w=1600&q=80&auto=format&fit=crop&sig=${seed}`
 
 // --- Helpers ---
 const extractSlugFromPath = (pathname: string, fallback?: string) => {
@@ -62,7 +62,6 @@ const createAnonymousAlias = () => {
     persistAlias(alias)
     return alias
 }
-
 type CommentNode = Comment & { children: CommentNode[] }
 
 const buildCommentTree = (items: Comment[]): CommentNode[] => {
@@ -93,37 +92,6 @@ const buildCommentTree = (items: Comment[]): CommentNode[] => {
     return roots
 }
 
-// --- Hidden Effect Component: Particle Burst ---
-const ParticleBurst = ({ x, y }: { x: number; y: number }) => {
-    return (
-        <div className="pointer-events-none fixed inset-0 z-[100] overflow-hidden">
-            {[...Array(15)].map((_, i) => (
-                <motion.div
-                    key={i}
-                    initial={{ x, y, opacity: 1, scale: 0.8 }}
-                    animate={{
-                        x: x + (Math.random() - 0.5) * 300,
-                        y: y + (Math.random() - 0.5) * 300,
-                        opacity: 0,
-                        scale: 0,
-                        rotate: Math.random() * 720,
-                    }}
-                    transition={{ duration: 1, ease: 'easeOut' }}
-                    className="absolute h-3 w-3 rounded-full shadow-lg"
-                    style={{
-                        backgroundColor: [
-                            '#f472b6', // pink-400
-                            '#fb7185', // rose-400
-                            '#c084fc', // purple-400
-                            '#ffffff', // white
-                        ][i % 4],
-                    }}
-                />
-            ))}
-        </div>
-    )
-}
-
 type CommentItemProps = {
     node: CommentNode
     depth?: number
@@ -134,8 +102,11 @@ const CommentItem = ({ node, depth = 0, onReply }: CommentItemProps) => {
     const indent = Math.min(depth * 16, 64)
     return (
         <div className="space-y-3">
-            <div className="flex gap-4" style={{ paddingLeft: indent }}>
-                <div className="h-10 w-10 shrink-0 rounded-full bg-pink-50 border border-pink-100 overflow-hidden">
+            <div
+                className="flex gap-4 rounded-2xl border border-[color:var(--card-border)] bg-white/70 p-4"
+                style={{ paddingLeft: indent }}
+            >
+                <div className="h-10 w-10 shrink-0 rounded-full bg-[color:var(--paper-strong)] border border-[color:var(--card-border)] overflow-hidden">
                     <img
                         src={buildAvatarUrl(node.authorName || `comment-${node.id}`)}
                         alt={node.authorName || '匿名用户'}
@@ -144,14 +115,14 @@ const CommentItem = ({ node, depth = 0, onReply }: CommentItemProps) => {
                 </div>
                 <div className="flex-grow space-y-1">
                     <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-800">{node.authorName || '匿名用户'}</span>
-                        <span className="text-xs text-slate-400">
+                        <span className="font-semibold text-[color:var(--ink)]">{node.authorName || '匿名用户'}</span>
+                        <span className="text-xs text-[color:var(--ink-soft)]">
                             {node.createdAt ? new Date(node.createdAt).toLocaleDateString() : ''}
                         </span>
                     </div>
-                    <p className="text-slate-600 text-sm leading-relaxed">{node.content}</p>
+                    <p className="text-[color:var(--ink-muted)] text-sm leading-relaxed">{node.content}</p>
                     <button
-                        className="text-xs text-pink-500 hover:text-pink-600"
+                        className="text-xs text-[color:var(--accent)] hover:text-[color:var(--ink)]"
                         onClick={() => onReply(node)}
                     >
                         回复
@@ -187,8 +158,8 @@ const TableOfContents = ({
     if (!items.length) return null
 
     return (
-        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-            <h4 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-400">
+        <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-5 shadow-[0_20px_40px_-35px_rgba(31,41,55,0.35)] lg:max-h-[calc(100vh-22rem)] lg:overflow-y-auto">
+            <h4 className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.3em] text-[color:var(--ink-soft)]">
                 <List className="h-4 w-4" /> 目录
             </h4>
             <div className="space-y-3 text-sm">
@@ -202,19 +173,19 @@ const TableOfContents = ({
                                     onToggle(item.id)
                                     onJump(item.id)
                                 }}
-                                className="flex w-full items-center justify-between text-slate-700 hover:text-pink-500"
+                                className="flex w-full items-center justify-between text-[color:var(--ink)] hover:text-[color:var(--accent)]"
                             >
                                 <span className="truncate">{item.text}</span>
-                                <span className="text-xs text-slate-400">{isOpen ? '▾' : '▸'}</span>
+                                <span className="text-xs text-[color:var(--ink-soft)]">{isOpen ? '—' : '+'}</span>
                             </button>
                             {isOpen && item.children.length > 0 && (
-                                <div className="space-y-1 pl-3 border-l border-slate-100">
+                                <div className="space-y-1 pl-3 border-l border-[color:var(--card-border)]">
                                     {item.children.map((child) => (
                                         <button
                                             key={child.id}
                                             type="button"
                                             onClick={() => onJump(child.id)}
-                                            className="block w-full text-left text-slate-600 hover:text-pink-500 truncate"
+                                            className="block w-full text-left text-[color:var(--ink-muted)] hover:text-[color:var(--accent)] truncate"
                                         >
                                             {child.text}
                                         </button>
@@ -256,10 +227,10 @@ const Pre = ({ children, ...props }: React.DetailedHTMLProps<React.HTMLAttribute
     }
 
     return (
-        <div className={isFullscreen ? 'fixed inset-0 z-[80] bg-[#f5f6fa] overflow-auto px-6 pt-24 pb-10' : 'relative group'}>
-            <div className={isFullscreen ? 'max-w-6xl mx-auto relative' : 'relative'}>
+        <div className={isFullscreen ? 'fixed inset-0 z-[80] bg-[color:var(--paper)] overflow-auto px-6 pt-24 pb-10' : 'relative group'}>
+            <div className={isFullscreen ? 'max-w-7xl mx-auto relative' : 'relative'}>
                 <div className="absolute left-4 right-4 top-1 z-30 flex items-center justify-between gap-2">
-                    <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-pink-600 shadow-sm border border-white/60">
+                    <span className="rounded-full bg-[color:var(--paper-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--accent)] shadow-sm border border-[color:var(--card-border)]">
                         {language}
                     </span>
                     <div className="flex items-center gap-3">
@@ -268,22 +239,16 @@ const Pre = ({ children, ...props }: React.DetailedHTMLProps<React.HTMLAttribute
                                 e.preventDefault()
                                 setIsFullscreen((v) => !v)
                             }}
-                            className="flex h-8 items-center justify-center rounded-full bg-white/90 px-3 text-xs font-semibold text-pink-600 hover:bg-white transition shadow-sm border border-white/60"
+                            className="flex h-8 items-center justify-center rounded-full bg-[color:var(--paper-soft)] px-3 text-xs font-semibold text-[color:var(--accent)] hover:bg-white transition shadow-sm border border-[color:var(--card-border)]"
                             aria-label={isFullscreen ? '退出全屏' : '全屏查看'}
                         >
-                            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                            {isFullscreen ? '收起' : '放大'}
                         </button>
                         <button
                             onClick={onCopy}
-                            className="flex h-8 items-center gap-1.5 rounded-full bg-white/90 px-4 text-xs font-semibold text-pink-600 transition-colors hover:bg-white shadow-sm border border-white/60"
+                            className="flex h-8 items-center gap-1.5 rounded-full bg-[color:var(--paper-soft)] px-4 text-xs font-semibold text-[color:var(--accent)] transition-colors hover:bg-white shadow-sm border border-[color:var(--card-border)]"
                         >
-                            {copied ? (
-                                <>
-                                    <span className="text-green-500">✓</span> Copied
-                                </>
-                            ) : (
-                                "Copy"
-                            )}
+                            {copied ? 'OK' : 'Copy'}
                         </button>
                     </div>
                 </div>
@@ -305,7 +270,6 @@ const Pre = ({ children, ...props }: React.DetailedHTMLProps<React.HTMLAttribute
         </div>
     )
 }
-
 export default function ArticleDetailPage() {
     const location = useLocation()
     const params = useParams()
@@ -321,6 +285,47 @@ export default function ArticleDetailPage() {
     const markdownRef = useRef<HTMLDivElement | null>(null)
     const [tocItems, setTocItems] = useState<TocItem[]>([])
     const [expandedToc, setExpandedToc] = useState<Set<string>>(new Set())
+    const shouldReduceMotion = useReducedMotion()
+
+    const themeStyles = useMemo(
+        () =>
+            ({
+                '--paper': '#f6f1e7',
+                '--paper-soft': '#fbf8f2',
+                '--paper-strong': '#efe6d7',
+                '--ink': '#1f2933',
+                '--ink-muted': '#6b6157',
+                '--ink-soft': '#8a8076',
+                '--accent': '#b45309',
+                '--teal': '#0f766e',
+                '--card-border': '#e3d8c8',
+                '--shadow-soft': '0 32px 60px -44px rgba(31, 41, 55, 0.35)',
+                '--font-display': '"Libre Bodoni", "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", "Times New Roman", serif',
+                '--font-body': '"Public Sans", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif',
+            }) as CSSProperties,
+        []
+    )
+
+    const paperPattern = useMemo(
+        () =>
+            ({
+                backgroundImage:
+                    'radial-gradient(circle at 12% 18%, rgba(180, 83, 9, 0.12), transparent 45%), radial-gradient(circle at 88% 0%, rgba(15, 118, 110, 0.12), transparent 40%), linear-gradient(transparent 93%, rgba(31, 41, 55, 0.04) 93%), linear-gradient(90deg, transparent 93%, rgba(31, 41, 55, 0.04) 93%)',
+                backgroundSize: '280px 280px, 320px 320px, 32px 32px, 32px 32px',
+            }) as CSSProperties,
+        []
+    )
+
+    const heroMotion = shouldReduceMotion
+        ? {}
+        : { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.6 } }
+
+    const { scrollYProgress } = useScroll()
+    const scaleX = useSpring(scrollYProgress, {
+        stiffness: 100,
+        damping: 30,
+        restDelta: 0.001,
+    })
 
     const {
         data: article,
@@ -347,21 +352,7 @@ export default function ArticleDetailPage() {
         },
     })
 
-    // Hidden effect state
-    const [bursts, setBursts] = useState<{ id: number; x: number; y: number }[]>([])
     const [isScrolled, setIsScrolled] = useState(false)
-
-    // Scroll progress
-    const { scrollY, scrollYProgress } = useScroll()
-    const scaleX = useSpring(scrollYProgress, {
-        stiffness: 100,
-        damping: 30,
-        restDelta: 0.001,
-    })
-
-    // Parallax hero
-    const heroY = useTransform(scrollY, [0, 500], [0, 200])
-    const heroOpacity = useTransform(scrollY, [0, 400], [1, 0])
 
     useEffect(() => {
         const handleScroll = () => setIsScrolled(window.scrollY > 100)
@@ -404,7 +395,6 @@ export default function ArticleDetailPage() {
         setTocItems(tocList)
         setExpandedToc(new Set(tocList.map((t) => t.id)))
     }, [article?.content])
-
     const resolveAuthorName = () => {
         const trimmed = commentAuthor.trim()
         if (trimmed) return trimmed
@@ -446,17 +436,10 @@ export default function ArticleDetailPage() {
         },
     })
 
-    const handleDoubleClick = (e: React.MouseEvent) => {
-        const id = Date.now()
-        setBursts((prev) => [...prev, { id, x: e.clientX, y: e.clientY }])
-        setTimeout(() => {
-            setBursts((prev) => prev.filter((b) => b.id !== id))
-        }, 1200)
-    }
-
     const previewName = commentAuthor.trim() || anonymousAlias || 'Guest'
     const previewAvatar = buildAvatarUrl(previewName)
     const commentTree = useMemo(() => buildCommentTree(comments), [comments])
+
     const handleJumpToHeading = (id: string) => {
         const el = document.getElementById(id)
         if (el) {
@@ -466,11 +449,11 @@ export default function ArticleDetailPage() {
 
     if (loadingArticle) {
         return (
-            <div className="flex h-screen w-full items-center justify-center bg-slate-50">
+            <div className="flex h-screen w-full items-center justify-center bg-[color:var(--paper)]">
                 <motion.div
-                    animate={{ rotate: 360 }}
+                    animate={shouldReduceMotion ? {} : { rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                    className="h-10 w-10 rounded-full border-2 border-pink-400 border-t-transparent"
+                    className="h-10 w-10 rounded-full border-2 border-[color:var(--accent)] border-t-transparent"
                 />
             </div>
         )
@@ -478,8 +461,8 @@ export default function ArticleDetailPage() {
 
     if (articleError || !article || !slug) {
         return (
-            <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-slate-50 text-slate-500">
-                <p>星球似乎偏离了轨道..(Article not found)</p>
+            <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-[color:var(--paper)] text-[color:var(--ink-muted)]">
+                <p>没有找到对应的文章。</p>
                 <Link to="/">
                     <Button variant="outline">Back to Home</Button>
                 </Link>
@@ -491,89 +474,160 @@ export default function ArticleDetailPage() {
     const breadcrumbCategory = article.category?.slugPath
         ? `/${article.category.slugPath}`
         : derivedCategoryPath || article.category?.name || 'Uncategorized'
-
+    const heroImage = article.coverImage || coverImageFor(article.id)
+    const readTime = Math.max(1, Math.ceil((article.content?.length || 0) / 500))
     return (
         <div
-            className="relative min-h-screen bg-[#F0F2F5] text-slate-900 selection:bg-pink-200 selection:text-pink-900 font-sans"
-            onDoubleClick={handleDoubleClick}
+            className="relative min-h-screen bg-[color:var(--paper)] text-[color:var(--ink)] font-body selection:bg-[color:var(--paper-strong)] selection:text-[color:var(--ink)]"
+            style={themeStyles}
         >
-            {/* --- Hidden Effects --- */}
-            {bursts.map((burst) => (
-                <ParticleBurst key={burst.id} x={burst.x} y={burst.y} />
-            ))}
+            <div className="pointer-events-none absolute inset-0 opacity-70" style={paperPattern} />
 
-            {/* --- Top Progress Bar --- */}
             <motion.div
-                className="fixed left-0 top-0 z-[60] h-1 bg-gradient-to-r from-pink-400 via-rose-400 to-purple-500 origin-left"
+                className="fixed left-0 top-0 z-[60] h-1 bg-gradient-to-r from-[color:var(--accent)] via-[color:var(--teal)] to-[color:var(--ink)] origin-left"
                 style={{ scaleX }}
             />
 
-            {/* --- Navigation --- */}
-            <nav className={`fixed left-0 top-0 z-50 w-full transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-6'}`}>
-                <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 md:px-12">
+            <nav className={`fixed left-0 top-0 z-50 w-full transition-all duration-300 ${isScrolled ? 'bg-[color:var(--paper-soft)]/90 backdrop-blur border-b border-[color:var(--card-border)] py-3' : 'bg-transparent py-6'}`}>
+                <div className="mx-auto flex max-w-7xl items-center justify-between px-6">
                     <Link
                         to="/"
-                        className={`group flex items-center gap-2 text-sm font-medium transition-colors ${isScrolled ? 'text-slate-600 hover:text-pink-500' : 'text-white/80 hover:text-white'}`}
+                        className="group flex items-center gap-2 text-sm font-semibold text-[color:var(--ink)] transition-colors"
                     >
-                        <div className={`flex h-8 w-8 items-center justify-center rounded-full border transition-all ${isScrolled ? 'border-slate-200 bg-white' : 'border-white/20 bg-white/10'}`}>
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--card-border)] bg-[color:var(--paper-soft)]">
                             <ArrowLeft className="h-4 w-4" />
-                        </div>
-                        <span className="font-bold tracking-tight">碎念随风</span>
+                        </span>
+                        <span className="font-display tracking-[0.2em] uppercase">碎念随风</span>
                     </Link>
+                    <div className="hidden md:flex items-center gap-4 text-xs text-[color:var(--ink-soft)]">
+                        <span>{formattedDate}</span>
+                        <span className="h-1 w-1 rounded-full bg-[color:var(--ink-soft)]" />
+                        <span>{readTime} min</span>
+                        <span className="h-1 w-1 rounded-full bg-[color:var(--ink-soft)]" />
+                        <span>{article.views} views</span>
+                    </div>
                 </div>
             </nav>
 
-            {/* --- Hero Banner (Cosmic) --- */}
-            <motion.div
-                className="relative h-[550px] w-full overflow-hidden bg-slate-900"
-                style={{ y: heroY, opacity: heroOpacity }}
-            >
-                {/* Cosmic Background Layer */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900 via-slate-900 to-black opacity-80" />
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-150 contrast-150 mix-blend-overlay" />
-
-                {/* Stars/Orbs */}
-                <div className="absolute top-1/4 left-1/4 h-64 w-64 rounded-full bg-purple-500/30 blur-[100px]" />
-                <div className="absolute bottom-0 right-1/4 h-80 w-80 rounded-full bg-pink-500/20 blur-[120px]" />
-
-                {/* Hero Content */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center text-white">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+            <motion.section {...heroMotion} className="relative px-4 pt-32 pb-16 md:px-10">
+                <div className="mx-auto max-w-7xl space-y-8">
+                    <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.3em] text-[color:var(--ink-soft)]">
+                        <span className="rounded-full border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] px-3 py-1 text-[color:var(--ink)]">
+                            {breadcrumbCategory}
+                        </span>
+                        <span aria-hidden="true">&middot;</span>
+                        <span>{formattedDate}</span>
+                        <span aria-hidden="true">&middot;</span>
+                        <span>{readTime} min read</span>
+                    </div>
+                    <h1 className="text-[clamp(2.6rem,5vw,4.8rem)] font-display leading-[1.05]">
+                        {article.title}
+                    </h1>
+                    <div className="mx-auto w-full max-w-5xl rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)]/80 p-5 shadow-[0_18px_36px_-30px_rgba(31,41,55,0.25)]">
+                        <div className="grid gap-3 md:grid-cols-[120px_1fr] md:items-start">
+                            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.35em] text-[color:var(--ink-soft)]">
+                                <span className="h-px w-6 bg-[color:var(--accent)]/60" />
+                                摘要
+                            </div>
+                            <p className="text-base md:text-lg text-[color:var(--ink-muted)] leading-relaxed">
+                                {(article.summary && article.summary.trim()) ||
+                                    '记录当下的观察与思考，让每次实践都成为新的线索。'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div className="mx-auto mt-8 max-w-5xl">
+                    <div className="relative overflow-hidden rounded-3xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] shadow-[0_22px_50px_-40px_rgba(31,41,55,0.4)]">
+                        <div className="relative aspect-[16/9] md:aspect-[21/9]">
+                            {heroImage ? (
+                                <img
+                                    src={heroImage}
+                                    alt={article.title}
+                                    className="absolute inset-0 h-full w-full object-cover"
+                                />
+                            ) : (
+                                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+                            <div className="absolute bottom-5 left-5 flex flex-wrap items-center gap-2 text-xs text-white/80">
+                                <span className="rounded-full border border-white/40 bg-white/10 px-3 py-1">
+                                    Issue {String(article.id).padStart(2, '0')}
+                                </span>
+                                <span className="rounded-full border border-white/40 bg-white/10 px-3 py-1">
+                                    {article.authorName || 'Admin'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </motion.section>
+            <main className="relative z-10 mx-auto max-w-7xl px-4 pb-24 md:px-10">
+                <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_260px] 2xl:grid-cols-[minmax(0,1fr)_300px]">
+                    <motion.article
+                        initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, ease: 'easeOut' }}
-                        className="space-y-6 max-w-4xl"
+                        transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.5 }}
+                        className="rounded-3xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-6 shadow-[0_28px_55px_-40px_rgba(31,41,55,0.35)] md:p-10"
                     >
-                        <div className="flex items-center justify-center gap-3 text-sm font-bold tracking-[0.2em] text-pink-200/80 uppercase">
-                            <Sparkles className="h-4 w-4 text-pink-300" />
-                            <span>{breadcrumbCategory}</span>
-                            <span className="text-white/20">|</span>
-                            <span>{formattedDate}</span>
+                        <div
+                            ref={markdownRef}
+                            className="prose prose-lg max-w-none prose-headings:font-display prose-headings:text-[color:var(--ink)] prose-p:text-[color:var(--ink-muted)] prose-p:leading-8 prose-a:text-[color:var(--teal)] prose-a:no-underline hover:prose-a:text-[color:var(--accent)] hover:prose-a:underline prose-blockquote:border-l-4 prose-blockquote:border-[color:var(--teal)]/35 prose-blockquote:bg-[color:var(--paper-strong)]/60 prose-blockquote:rounded-r-lg prose-img:rounded-2xl prose-img:shadow-md prose-strong:text-[color:var(--ink)] prose-code:bg-[color:var(--paper-strong)] prose-code:text-[color:var(--teal)] prose-code:rounded-md prose-li:marker:text-[color:var(--teal)]"
+                        >
+                            <MarkdownPreview
+                                source={article.content}
+                                className="!bg-transparent !text-[color:var(--ink-muted)] font-body markdown-paper"
+                                components={{
+                                    pre: Pre,
+                                }}
+                                wrapperElement={{
+                                    'data-color-mode': 'light',
+                                }}
+                            />
                         </div>
 
-                        <h1 className="text-4xl font-extrabold tracking-tight md:text-6xl lg:text-7xl drop-shadow-2xl">
-                            {article.title}
-                        </h1>
+                        {article.tags && article.tags.length > 0 && (
+                            <div className="mt-12 flex flex-wrap gap-2 pt-8 border-t border-[color:var(--card-border)]">
+                                {article.tags.map((tag) => (
+                                    <Badge
+                                        key={tag.id}
+                                        variant="secondary"
+                                        className="bg-[color:var(--paper-strong)] hover:bg-white text-[color:var(--ink-muted)] hover:text-[color:var(--accent)] transition-colors px-3 py-1.5 border border-[color:var(--card-border)]"
+                                    >
+                                        <Hash className="mr-1 h-3 w-3" /> {tag.name}
+                                    </Badge>
+                                ))}
+                            </div>
+                        )}
+                    </motion.article>
 
-                        <p className="mx-auto max-w-3xl text-lg text-white/80 leading-relaxed font-light text-center">
-                            {(article.summary && article.summary.trim()) ||
-                                '人海未见之时，我亦独行在这城市。 料峭，春醒，酷暑，骤雨，寒意四起，大雁南飞，而后，大雪，寒风， 斗转星移，人间寒暑。'}
-                        </p>
-                    </motion.div>
-                </div>
+                    <aside className="flex flex-col gap-6 lg:self-start lg:sticky lg:top-24 lg:min-h-[calc(100vh-7rem)]">
+                        <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-5 shadow-[0_18px_40px_-35px_rgba(31,41,55,0.3)] space-y-4">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-[color:var(--ink-muted)] flex items-center gap-2"><Eye className="h-4 w-4" /> 阅读</span>
+                                <span className="font-semibold text-[color:var(--ink)]">{article.views}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-[color:var(--ink-muted)] flex items-center gap-2"><Clock className="h-4 w-4" /> 时长</span>
+                                <span className="font-semibold text-[color:var(--ink)]">{readTime} min</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-[color:var(--ink-muted)] flex items-center gap-2"><Calendar className="h-4 w-4" /> 发布</span>
+                                <span className="font-semibold text-[color:var(--ink)]">{formattedDate}</span>
+                            </div>
+                        </div>
 
-                {/* Bottom Curvature (Optional "Sheet" effect) */}
-                <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#F0F2F5] to-transparent" />
-            </motion.div>
+                        <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-5 shadow-[0_18px_40px_-35px_rgba(31,41,55,0.3)] flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-full bg-[color:var(--paper-strong)] border border-[color:var(--card-border)] flex items-center justify-center">
+                                <User className="h-6 w-6 text-[color:var(--ink-soft)]" />
+                            </div>
+                            <div>
+                                <div className="font-semibold text-[color:var(--ink)]">{article.authorName || 'Admin'}</div>
+                                <div className="text-xs text-[color:var(--ink-soft)]">Content Creator</div>
+                            </div>
+                        </div>
 
-            {/* --- Content Overlay --- */}
-            <main className="relative z-10 mx-auto -mt-20 max-w-[1800px] px-4 md:px-8 pb-24">
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px] xl:grid-cols-[280px_1fr_320px] xl:gap-20">
-
-                    {/* --- Left Column: TOC --- */}
-                    <div className="hidden xl:block">
-                        <div className="sticky top-24 max-h-[75vh] overflow-y-auto pr-2">
-                            {article.content && (
+                        {article.content && (
+                            <div className="lg:mt-auto">
                                 <TableOfContents
                                     items={tocItems}
                                     expanded={expandedToc}
@@ -584,194 +638,82 @@ export default function ArticleDetailPage() {
                                     }}
                                     onJump={handleJumpToHeading}
                                 />
-                            )}
-                        </div>
-                    </div>
-
-                    {/* --- Center Column: Article --- */}
-                    <div className="min-w-0 space-y-8">
-                        <motion.article
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6 }}
-                            className="rounded-[2.5rem] bg-white p-8 shadow-xl shadow-slate-200/50 md:p-12"
-                        >
-                            <div
-                                ref={markdownRef}
-                                className="prose prose-lg prose-slate max-w-none 
-                                prose-headings:font-bold prose-headings:text-slate-800 
-                                prose-h1:text-center prose-h1:hidden
-                                prose-p:text-slate-600 prose-p:leading-8
-                                prose-a:text-pink-500 prose-a:no-underline prose-a:font-semibold hover:prose-a:text-pink-600 hover:prose-a:underline
-                                prose-blockquote:border-l-4 prose-blockquote:border-pink-300 prose-blockquote:bg-pink-50/50 prose-blockquote:rounded-r-lg
-                                prose-img:rounded-2xl prose-img:shadow-md
-                                prose-strong:text-slate-900
-                                prose-code:bg-slate-100 prose-code:text-pink-600 prose-code:rounded-md
-                                prose-li:marker:text-pink-300
-                            "
-                            >
-                                <MarkdownPreview
-                                    source={article.content}
-                                    className="!bg-transparent !text-slate-700 !font-sans markdown-mac-terminal"
-                                    components={{
-                                        pre: Pre
-                                    }}
-                                    wrapperElement={{
-                                        "data-color-mode": "light"
-                                    }}
-                                />
                             </div>
-
-                            {/* Tags Footer */}
-                            {article.tags && article.tags.length > 0 && (
-                                <div className="mt-12 flex flex-wrap gap-2 pt-8 border-t border-slate-100">
-                                    {article.tags.map((tag) => (
-                                        <Badge
-                                            key={tag.id}
-                                            variant="secondary"
-                                            className="bg-slate-100 hover:bg-pink-50 text-slate-600 hover:text-pink-600 transition-colors px-3 py-1.5"
-                                        >
-                                            <Hash className="mr-1 h-3 w-3" /> {tag.name}
-                                        </Badge>
-                                    ))}
-                                </div>
-                            )}
-                        </motion.article>
-
-                        {/* Comments Section */}
-                        <div className="rounded-[2.5rem] bg-white p-8 shadow-xl shadow-slate-200/50 md:p-12">
-                            <div className="mb-8 flex items-center justify-between">
-                                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                                    <MessageSquare className="h-5 w-5 text-pink-500" />
-                                    评论 <span className="text-slate-400 font-normal text-sm">({comments.length})</span>
-                                </h3>
-                            </div>
-
-                            {/* Comment Input */}
-                            <div className="mb-10 space-y-4">
-                                {replyTarget && (
-                                    <div className="flex items-center justify-between rounded-xl bg-pink-50 border border-pink-100 px-4 py-2 text-sm text-pink-700">
-                                        <span>
-                                            正在回复：{replyTarget.authorName || '匿名用户'}（#{replyTarget.id}）
-                                        </span>
-                                        <button
-                                            className="text-pink-600 hover:text-pink-700"
-                                            onClick={() => setReplyTarget(null)}
-                                        >
-                                            取消
-                                        </button>
-                                    </div>
-                                )}
-                                <div className="flex gap-4">
-                                    <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 border border-slate-200 overflow-hidden">
-                                        <img src={previewAvatar} alt="评论头像" className="h-full w-full object-cover" />
-                                    </div>
-                                    <div className="flex-grow space-y-3">
-                                        <input
-                                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-pink-300 focus:bg-white focus:ring-2 focus:ring-pink-100 transition-all"
-                                            placeholder="名称 (选填)"
-                                            value={commentAuthor}
-                                            onChange={(e) => setCommentAuthor(e.target.value)}
-                                        />
-                                        <textarea
-                                            ref={commentInputRef}
-                                            className="min-h-[100px] w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-pink-300 focus:bg-white focus:ring-2 focus:ring-pink-100 transition-all resize-y"
-                                            placeholder={replyTarget ? `回复 ${replyTarget.authorName || '匿名用户'}...` : '写下你的想法...'}
-                                            value={commentContent}
-                                            onChange={(e) => setCommentContent(e.target.value)}
-                                        />
-                                        <div className="flex justify-end">
-                                            <Button
-                                                onClick={() => submitComment.mutate()}
-                                                disabled={submitComment.isPending || !commentContent.trim()}
-                                                className="rounded-full bg-pink-500 hover:bg-pink-600 text-white shadow-lg shadow-pink-200"
-                                            >
-                                                <Send className="mr-2 h-4 w-4" /> 发布
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Comments List */}
-                            <div className="space-y-6">
-                                {commentTree.map((comment) => (
-                                    <CommentItem
-                                        key={comment.id}
-                                        node={comment}
-                                        onReply={(node) => {
-                                            setReplyTarget(node)
-                                            setTimeout(() => commentInputRef.current?.focus(), 0)
-                                        }}
-                                    />
-                                ))}
-                                {!commentTree.length && (
-                                    <p className="text-sm text-slate-400 text-center py-4">快来写下第一条评论吧~</p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* --- Right Column: Sidebar (Sticky) --- */}
-                    <aside className="hidden lg:block">
-                        <div className="sticky top-28 space-y-6">
-
-                            {/* Mascot Placeholder */}
-                            <div className="relative flex justify-center">
-                                <motion.div
-                                    animate={{ y: [0, -10, 0] }}
-                                    transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                                    className="relative w-48 h-48"
-                                >
-                                    {/* Illustration Placeholder - Simulating the 'girl' mascot */}
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        {/* We use a placeholder image from a public anime avatar service to simulate the vibe requested */}
-                                        <img
-                                            src="https://api.dicebear.com/7.x/notionists/svg?seed=Mascot&backgroundColor=ffdfbf"
-                                            alt="Mascot"
-                                            className="h-full w-full drop-shadow-2xl"
-                                        />
-                                    </div>
-                                    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-600 shadow-md">
-                                        欢迎光临 ✨
-                                    </div>
-                                </motion.div>
-                            </div>
-
-                            {/* Stats */}
-                            <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 space-y-4">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-slate-500 flex items-center gap-2"><Eye className="h-4 w-4" /> 阅读</span>
-                                    <span className="font-bold text-slate-800">{article.views}</span>
-                                </div>
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-slate-500 flex items-center gap-2"><Clock className="h-4 w-4" /> 时长</span>
-                                    <span className="font-bold text-slate-800">{Math.max(1, Math.ceil((article.content?.length || 0) / 500))} min</span>
-                                </div>
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-slate-500 flex items-center gap-2"><Calendar className="h-4 w-4" /> 发布</span>
-                                    <span className="font-bold text-slate-800">{formattedDate}</span>
-                                </div>
-                            </div>
-
-                            {/* Author Card (Mini) */}
-                            <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5 flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden">
-                                    <User className="h-6 w-6 text-slate-400" />
-                                </div>
-                                <div>
-                                    <div className="font-bold text-slate-800">{article.authorName || 'Admin'}</div>
-                                    <div className="text-xs text-slate-400">Content Creator</div>
-                                </div>
-                            </div>
-
-                        </div>
+                        )}
                     </aside>
-
                 </div>
+
+                <section className="mt-12 rounded-3xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-6 shadow-[0_28px_55px_-40px_rgba(31,41,55,0.35)] md:p-10">
+                    <div className="mb-8 flex items-center justify-between">
+                        <h3 className="text-xl font-display text-[color:var(--ink)] flex items-center gap-2">
+                            <MessageSquare className="h-5 w-5 text-[color:var(--accent)]" />
+                            评论 <span className="text-[color:var(--ink-soft)] font-normal text-sm">({comments.length})</span>
+                        </h3>
+                    </div>
+
+                    <div className="mb-10 space-y-4">
+                        {replyTarget && (
+                            <div className="flex items-center justify-between rounded-xl bg-[color:var(--paper-strong)] border border-[color:var(--card-border)] px-4 py-2 text-sm text-[color:var(--ink)]">
+                                <span>
+                                    正在回复：{replyTarget.authorName || '匿名用户'}（#{replyTarget.id}）
+                                </span>
+                                <button
+                                    className="text-[color:var(--accent)] hover:text-[color:var(--ink)]"
+                                    onClick={() => setReplyTarget(null)}
+                                >
+                                    取消
+                                </button>
+                            </div>
+                        )}
+                        <div className="flex gap-4">
+                            <div className="h-10 w-10 shrink-0 rounded-full bg-[color:var(--paper-strong)] border border-[color:var(--card-border)] overflow-hidden">
+                                <img src={previewAvatar} alt="评论头像" className="h-full w-full object-cover" />
+                            </div>
+                            <div className="flex-grow space-y-3">
+                                <input
+                                    className="w-full rounded-xl border border-[color:var(--card-border)] bg-[color:var(--paper-strong)] px-4 py-3 text-sm outline-none focus:border-[color:var(--accent)]/60 focus:bg-white focus:ring-2 focus:ring-[color:var(--accent)]/10 transition-all"
+                                    placeholder="名称 (选填)"
+                                    value={commentAuthor}
+                                    onChange={(e) => setCommentAuthor(e.target.value)}
+                                />
+                                <textarea
+                                    ref={commentInputRef}
+                                    className="min-h-[110px] w-full rounded-xl border border-[color:var(--card-border)] bg-[color:var(--paper-strong)] px-4 py-3 text-sm outline-none focus:border-[color:var(--accent)]/60 focus:bg-white focus:ring-2 focus:ring-[color:var(--accent)]/10 transition-all resize-y"
+                                    placeholder={replyTarget ? `回复 ${replyTarget.authorName || '匿名用户'}...` : '写下你的想法...'}
+                                    value={commentContent}
+                                    onChange={(e) => setCommentContent(e.target.value)}
+                                />
+                                <div className="flex justify-end">
+                                    <Button
+                                        onClick={() => submitComment.mutate()}
+                                        disabled={submitComment.isPending || !commentContent.trim()}
+                                        className="rounded-full bg-[color:var(--accent)] hover:bg-[#92400e] text-white shadow-lg shadow-amber-200/60"
+                                    >
+                                        <Send className="mr-2 h-4 w-4" /> 发布
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        {commentTree.map((comment) => (
+                            <CommentItem
+                                key={comment.id}
+                                node={comment}
+                                onReply={(node) => {
+                                    setReplyTarget(node)
+                                    setTimeout(() => commentInputRef.current?.focus(), 0)
+                                }}
+                            />
+                        ))}
+                        {!commentTree.length && (
+                            <p className="text-sm text-[color:var(--ink-soft)] text-center py-4">快来写下第一条评论吧。</p>
+                        )}
+                    </div>
+                </section>
             </main>
 
-            {/* Scroll to Top */}
             <AnimatePresence>
                 {isScrolled && (
                     <motion.button
@@ -779,7 +721,7 @@ export default function ArticleDetailPage() {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
                         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                        className="fixed bottom-8 right-8 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-pink-500 text-white shadow-lg hover:bg-pink-600 focus:outline-none"
+                        className="fixed bottom-8 right-8 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[color:var(--accent)] text-white shadow-lg hover:bg-[#92400e] focus:outline-none"
                     >
                         <ChevronUp className="h-6 w-6" />
                     </motion.button>

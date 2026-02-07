@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Libre+Bodoni:wght@400;500;600;700&family=Public+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -34,12 +36,27 @@
 
     --radius: 0.5rem;
 
+    --sand: #f4f7fb;
+    --sand-muted: #e8eef7;
+    --paper: #f6f1e7;
+    --paper-soft: #fbf8f2;
+    --paper-strong: #efe6d7;
+    --ink: #0f172a;
+    --ink-muted: #6b6157;
+    --ink-soft: #8a8076;
+    --accent: #2563eb;
+    --teal: #0ea5e9;
+    --card-border: #d5dde9;
+    --shadow-soft: 0 24px 60px -40px rgba(15, 23, 42, 0.3);
+    --font-display: 'Space Grotesk', 'Libre Bodoni', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'SimSun', 'Times New Roman', serif;
+    --font-body: 'IBM Plex Sans', 'Public Sans', 'Noto Sans SC', 'Source Han Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+
     /* Custom Gradients - Dreamy Theme */
-    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --gradient-accent: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    --gradient-success: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
-    --gradient-hero: linear-gradient(135deg, #4158d0 0%, #c850c0 46%, #ffcc70 100%);
-    --gradient-starry: linear-gradient(to bottom, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+    --gradient-primary: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+    --gradient-accent: linear-gradient(135deg, #22d3ee 0%, #38bdf8 100%);
+    --gradient-success: linear-gradient(135deg, #99f6e4 0%, #5eead4 100%);
+    --gradient-hero: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0ea5e9 100%);
+    --gradient-starry: linear-gradient(to bottom, #0b1220 0%, #111827 60%, #1f2937 100%);
   }
 
   .dark {
@@ -72,10 +89,10 @@
     --ring: 212.7 26.8% 83.9%;
 
     /* Dark Theme Gradients */
-    --gradient-primary: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    --gradient-accent: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-    --gradient-success: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
-    --gradient-hero: linear-gradient(135deg, #4facfe 0%, #00f2fe 50%, #fa709a 100%);
+    --gradient-primary: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+    --gradient-accent: linear-gradient(135deg, #38bdf8 0%, #22d3ee 100%);
+    --gradient-success: linear-gradient(135deg, #5eead4 0%, #2dd4bf 100%);
+    --gradient-hero: linear-gradient(135deg, #0f172a 0%, #1d4ed8 50%, #0ea5e9 100%);
   }
 }
 
@@ -86,6 +103,9 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    background-color: var(--sand);
+    color: var(--ink);
   }
 
   html {
@@ -142,6 +162,54 @@
   /* Smooth Transitions */
   .transition-smooth {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-body {
+    font-family: var(--font-body);
+  }
+
+  .bg-sand {
+    background-color: var(--sand);
+  }
+
+  .bg-sand-muted {
+    background-color: var(--sand-muted);
+  }
+
+  .bg-paper {
+    background-color: var(--paper);
+  }
+
+  .bg-paper-soft {
+    background-color: var(--paper-soft);
+  }
+
+  .text-ink {
+    color: var(--ink);
+  }
+
+  .text-ink-muted {
+    color: var(--ink-muted);
+  }
+
+  .text-ink-soft {
+    color: var(--ink-soft);
+  }
+
+  .text-accent {
+    color: var(--accent);
+  }
+
+  .border-sand {
+    border-color: var(--card-border);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
   }
 
   /* Card Hover Effect */
@@ -222,6 +290,51 @@
   .markdown-mac-terminal pre>code {
     display: inline-block !important;
     /* Changed to inline-block for scrolling */
+    min-width: 100%;
+    padding: 0 !important;
+    background-color: transparent !important;
+    color: inherit !important;
+    text-shadow: none !important;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace !important;
+    font-size: 0.9em !important;
+    line-height: 1.6 !important;
+  }
+
+  /* --- Paper Style for Markdown Code Blocks --- */
+  .markdown-paper pre {
+    padding-top: 3.25rem !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+
+    position: relative;
+    background: linear-gradient(135deg, #f9f4ec 0%, #f2e8d7 100%) !important;
+    border-radius: 1rem !important;
+    border: 1px solid rgba(180, 83, 9, 0.2) !important;
+    box-shadow: 0 16px 36px -22px rgba(31, 41, 55, 0.35) !important;
+    color: #374151 !important;
+    overflow-x: auto !important;
+  }
+
+  .markdown-paper pre::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2.25rem;
+    background: linear-gradient(90deg, #f1e6d4, #f7f1e7);
+    border-bottom: 1px solid rgba(180, 83, 9, 0.2);
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .markdown-paper pre::after {
+    content: none;
+  }
+
+  .markdown-paper pre > code {
+    display: inline-block !important;
     min-width: 100%;
     padding: 0 !important;
     background-color: transparent !important;

@@ -1,4 +1,4 @@
-import { LocationData } from '../../../pages/public/FootprintPage'
+﻿import { LocationData } from '../../../pages/public/FootprintPage'
 import { MapPin, Image as ImageIcon, Calendar } from 'lucide-react'
 
 interface VisitedStatsProps {
@@ -19,32 +19,32 @@ export function VisitedStats({ data }: VisitedStatsProps) {
         .pop()
 
     return (
-        <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col items-center justify-center">
-                <div className="text-sm text-slate-500 mb-1 flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
+        <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-3">
+            <div className="bg-[color:var(--paper-soft)] rounded-xl p-4 shadow-[0_20px_40px_-35px_rgba(31,41,55,0.3)] border border-[color:var(--card-border)] flex flex-col items-center justify-center">
+                <div className="text-sm text-[color:var(--ink-soft)] mb-1 flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-[color:var(--accent)]" />
                     去过的省/市
                 </div>
-                <div className="text-2xl font-bold text-slate-800">
+                <div className="text-2xl font-bold text-[color:var(--ink)]">
                     {visitedProvinces}
-                    <span className="text-xs text-slate-400 font-normal mx-1">省</span>
+                    <span className="text-xs text-[color:var(--ink-soft)] font-normal mx-1">省</span>
                     {visitedCities}
-                    <span className="text-xs text-slate-400 font-normal">市</span>
+                    <span className="text-xs text-[color:var(--ink-soft)] font-normal">市</span>
                 </div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col items-center justify-center">
-                <div className="text-sm text-slate-500 mb-1 flex items-center gap-1">
-                    <ImageIcon className="h-3 w-3" />
+            <div className="bg-[color:var(--paper-soft)] rounded-xl p-4 shadow-[0_20px_40px_-35px_rgba(31,41,55,0.3)] border border-[color:var(--card-border)] flex flex-col items-center justify-center">
+                <div className="text-sm text-[color:var(--ink-soft)] mb-1 flex items-center gap-1">
+                    <ImageIcon className="h-3 w-3 text-[color:var(--accent)]" />
                     照片总数
                 </div>
-                <div className="text-2xl font-bold text-slate-800">{totalPhotos}</div>
+                <div className="text-2xl font-bold text-[color:var(--ink)]">{totalPhotos}</div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col items-center justify-center">
-                <div className="text-sm text-slate-500 mb-1 flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
+            <div className="bg-[color:var(--paper-soft)] rounded-xl p-4 shadow-[0_20px_40px_-35px_rgba(31,41,55,0.3)] border border-[color:var(--card-border)] flex flex-col items-center justify-center">
+                <div className="text-sm text-[color:var(--ink-soft)] mb-1 flex items-center gap-1">
+                    <Calendar className="h-3 w-3 text-[color:var(--accent)]" />
                     最近出行
                 </div>
-                <div className="text-lg font-bold text-slate-800">{latest ?? '-'}</div>
+                <div className="text-lg font-bold text-[color:var(--ink)]">{latest ?? '-'}</div>
             </div>
         </div>
     )
