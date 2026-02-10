@@ -3,9 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Calendar, MapPin, X, ChevronLeft, ChevronRight, Image as ImageIcon, Pencil } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@repo/ui/components/ui/button'
-import { LocationData, FootprintPhoto } from '../../../pages/public/FootprintPage'
 import { api, unwrapResponse, API_HOST } from '../../../lib/api'
 import { useAuthStore } from '../../../store/useAuthStore'
+import type { FootprintPhoto, LocationData } from '../../../types/api'
 
 interface CityDetailProps {
     provinceName: string
@@ -285,7 +285,7 @@ export default function CityDetail({ provinceName, cityName, data, onBack }: Cit
                             : 'border-[color:var(--card-border)]'
                     }`}
                 >
-                    {addPhotosMutation.isLoading ? '上传中...' : '点击选择图片或拖拽到区域'}
+                    {addPhotosMutation.isPending ? '上传中...' : '点击选择图片或拖拽到区域'}
                 </button>
             </div>
             {uploadHint && <div className="text-sm text-[color:var(--ink-soft)] mt-2">{uploadHint}</div>}
@@ -332,13 +332,13 @@ export default function CityDetail({ provinceName, cityName, data, onBack }: Cit
                             </Button>
                             <Button
                                 className="bg-[color:var(--accent)] hover:bg-[#92400e] text-white"
-                                disabled={updateNoteMutation.isLoading}
+                                disabled={updateNoteMutation.isPending}
                                 onClick={() => {
                                     if (!editingPhoto?.id) return
                                     updateNoteMutation.mutate({ id: editingPhoto.id, note: noteDraft })
                                 }}
                             >
-                                {updateNoteMutation.isLoading ? '保存中...' : '保存备注'}
+                                {updateNoteMutation.isPending ? '保存中...' : '保存备注'}
                             </Button>
                         </div>
                     </div>

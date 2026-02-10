@@ -6,7 +6,6 @@ import com.blog.dto.auth.LoginRequest;
 import com.blog.dto.auth.RegisterRequest;
 import com.blog.service.AuthService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +17,6 @@ import javax.validation.Valid;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Slf4j
 public class AuthController {
 
     private final AuthService authService;
@@ -28,13 +26,8 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
-        try {
-            AuthResponse response = authService.login(request);
-            return ResponseEntity.ok(ApiResponse.success("登录成功", response));
-        } catch (Exception e) {
-            log.error("登录失败: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+        AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.success("登录成功", response));
     }
 
     /**
@@ -42,12 +35,7 @@ public class AuthController {
      */
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody RegisterRequest request) {
-        try {
-            authService.register(request);
-            return ResponseEntity.ok(ApiResponse.success());
-        } catch (Exception e) {
-            log.error("注册失败: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+        authService.register(request);
+        return ResponseEntity.ok(ApiResponse.success());
     }
 }

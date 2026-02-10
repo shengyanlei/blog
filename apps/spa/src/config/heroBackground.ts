@@ -1,10 +1,8 @@
 /**
  * 首页背景图片配置
  */
-
 export const heroBackgroundConfig = {
     interval: 10000,
-
     images: [
         'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1920&q=80&auto=format&fit=crop',
         'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1920&q=80&auto=format&fit=crop',
@@ -14,23 +12,4 @@ export const heroBackgroundConfig = {
         'https://images.unsplash.com/photo-1464802686167-b939a6910659?w=1920&q=80',
         'https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?w=1920&q=80',
     ],
-
-    transition: {
-        duration: 2000,
-        ease: [0.43, 0.13, 0.23, 0.96] as const,
-    },
-};
-
-export function addCustomBackground(imageUrl: string) {
-    heroBackgroundConfig.images.push(imageUrl);
-}
-
-export function removeBackground(index: number) {
-    if (index >= 0 && index < heroBackgroundConfig.images.length) {
-        heroBackgroundConfig.images.splice(index, 1);
-    }
-}
-
-export function updateInterval(intervalMs: number) {
-    heroBackgroundConfig.interval = intervalMs;
 }

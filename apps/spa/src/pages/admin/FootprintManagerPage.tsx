@@ -6,16 +6,8 @@ import { Input } from '@repo/ui/components/ui/input'
 import { Badge } from '@repo/ui/components/ui/badge'
 import { api, unwrapResponse, API_HOST } from '../../lib/api'
 import { MapPin, Trash2, Shuffle } from 'lucide-react'
-import { LocationData, FootprintPhoto } from '../public/FootprintPage'
 import { motion } from 'framer-motion'
-
-type ProvinceSummary = {
-    province: string
-    visitedCities: number
-    visitCount: number
-    photoCount: number
-    lastVisited?: string
-}
+import type { FootprintPhoto, LocationData, ProvinceSummary } from '../../types/api'
 
 export default function FootprintManagerPage() {
     const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
@@ -24,18 +16,22 @@ export default function FootprintManagerPage() {
     const [reassignTarget, setReassignTarget] = useState<{ photoId: number; province: string; city: string } | null>(null)
     const queryClient = useQueryClient()
 
-    const provincesQuery = useQuery({
+    const provincesQuery = useQuery<ProvinceSummary[]>({
         queryKey: ['admin', 'footprints', 'provinces'],
-        queryFn: async () => unwrapResponse((await api.get('/footprints/provinces')).data) as ProvinceSummary[],
+        queryFn: async () =>
+            unwrapResponse((await api.get('/footprints/provinces')).data) as ProvinceSummary[],
     })
 
-    const citiesQuery = useQuery({
+    const citiesQuery = useQuery<LocationData[]>({
         queryKey: ['admin', 'footprints', 'cities', selectedProvince],
         enabled: !!selectedProvince,
-        queryFn: async () => unwrapResponse((await api.get(`/footprints/provinces/${encodeURIComponent(selectedProvince || '')}/cities`)).data) as LocationData[],
+        queryFn: async () =>
+            unwrapResponse(
+                (await api.get(`/footprints/provinces/${encodeURIComponent(selectedProvince || '')}/cities`)).data
+            ) as LocationData[],
     })
 
-    const cityDetailQuery = useQuery({
+    const cityDetailQuery = useQuery<LocationData>({
         queryKey: ['admin', 'footprints', 'city', selectedCityId],
         enabled: !!selectedCityId,
         queryFn: async () => unwrapResponse((await api.get(`/footprints/cities/${selectedCityId}`)).data) as LocationData,
@@ -85,24 +81,26 @@ export default function FootprintManagerPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold mb-2">足迹管理</h1>
-                <p className="text-muted-foreground">按省份/城市查看足迹，支持删除照片或调整归属</p>
+                <h1 className="text-3xl font-semibold font-display mb-2 text-[color:var(--ink)]">足迹管理</h1>
+                <p className="text-[color:var(--ink-muted)]">按省份/城市查看足迹，支持删除照片或调整归属。</p>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-                <Card className="border border-slate-200 shadow-sm">
+                <Card className="border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] shadow-[0_26px_50px_-40px_rgba(31,41,55,0.35)]">
                     <CardHeader>
-                        <CardTitle>省份</CardTitle>
+                        <CardTitle className="text-[color:var(--ink)]">省份</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                        {provincesQuery.isLoading && <div className="text-sm text-muted-foreground">加载中...</div>}
+                        {provincesQuery.isLoading && <div className="text-sm text-[color:var(--ink-soft)]">加载中...</div>}
                         {!provincesQuery.isLoading && (
                             <div className="space-y-2">
                                 {(provincesQuery.data || []).map((p) => (
                                     <button
                                         key={p.province}
-                                        className={`w-full text-left rounded-md border px-3 py-2 flex items-center justify-between ${
-                                            selectedProvince === p.province ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 hover:bg-slate-50'
+                                        className={`w-full text-left rounded-xl border px-3 py-2 flex items-center justify-between ${
+                                            selectedProvince === p.province
+                                                ? 'border-[color:var(--accent)]/50 bg-[color:var(--paper-strong)]'
+                                                : 'border-[color:var(--card-border)] hover:bg-[color:var(--paper-strong)]'
                                         }`}
                                         onClick={() => {
                                             setSelectedProvince(p.province)
@@ -111,22 +109,26 @@ export default function FootprintManagerPage() {
                                         }}
                                     >
                                         <div className="space-y-0.5">
-                                            <div className="font-semibold text-slate-800">{p.province}</div>
-                                            <div className="text-xs text-slate-500">城市 {p.visitedCities} · 照片 {p.photoCount}</div>
+                                            <div className="font-semibold text-[color:var(--ink)]">{p.province}</div>
+                                            <div className="text-xs text-[color:var(--ink-soft)]">城市 {p.visitedCities} · 照片 {p.photoCount}</div>
                                         </div>
-                                        <Badge variant="outline">{p.visitCount} 次</Badge>
+                                        <Badge variant="outline" className="border-[color:var(--card-border)] text-[color:var(--ink-muted)]">
+                                            {p.visitCount} 次
+                                        </Badge>
                                     </button>
                                 ))}
-                                {!(provincesQuery.data || []).length && <div className="text-sm text-muted-foreground">暂无数据</div>}
+                                {!(provincesQuery.data || []).length && (
+                                    <div className="text-sm text-[color:var(--ink-soft)]">暂无数据</div>
+                                )}
                             </div>
                         )}
                     </CardContent>
                 </Card>
 
                 <div className="grid gap-4">
-                    <Card className="border border-slate-200 shadow-sm">
+                    <Card className="border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] shadow-[0_26px_50px_-40px_rgba(31,41,55,0.35)]">
                         <CardHeader>
-                            <CardTitle>城市</CardTitle>
+                            <CardTitle className="text-[color:var(--ink)]">城市</CardTitle>
                         </CardHeader>
                         <CardContent>
                             {selectedProvince ? (
@@ -136,42 +138,50 @@ export default function FootprintManagerPage() {
                                             key={city.id}
                                             variant={selectedCityId === city.id ? 'default' : 'outline'}
                                             size="sm"
+                                            className={
+                                                selectedCityId === city.id
+                                                    ? 'bg-[color:var(--accent)] text-white'
+                                                    : 'border-[color:var(--card-border)] text-[color:var(--ink-muted)] hover:text-[color:var(--ink)]'
+                                            }
                                             onClick={() => {
                                                 setSelectedCityId(city.id || null)
                                                 setSelectedCityName(city.city || null)
                                             }}
                                         >
-                                            {city.city} <span className="ml-2 text-xs text-slate-200">({city.photoCount ?? 0})</span>
+                                            {city.city}
+                                            <span className="ml-2 text-xs text-white/80">({city.photoCount ?? 0})</span>
                                         </Button>
                                     ))}
                                     {!citiesQuery.isLoading && !(citiesQuery.data || []).length && (
-                                        <span className="text-sm text-muted-foreground">该省暂无城市记录</span>
+                                        <span className="text-sm text-[color:var(--ink-soft)]">该省暂无城市记录</span>
                                     )}
                                 </div>
                             ) : (
-                                <div className="text-sm text-muted-foreground">请先选择省份</div>
+                                <div className="text-sm text-[color:var(--ink-soft)]">请先选择省份</div>
                             )}
                         </CardContent>
                     </Card>
 
-                    <Card className="border border-slate-200 shadow-sm">
+                    <Card className="border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] shadow-[0_26px_50px_-40px_rgba(31,41,55,0.35)]">
                         <CardHeader>
-                            <CardTitle>
+                            <CardTitle className="text-[color:var(--ink)]">
                                 照片
-                                {selectedCityName ? <span className="text-sm text-muted-foreground ml-2">({selectedCityName})</span> : null}
+                                {selectedCityName ? (
+                                    <span className="text-sm text-[color:var(--ink-soft)] ml-2">({selectedCityName})</span>
+                                ) : null}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {cityDetailQuery.isLoading && <div className="text-sm text-muted-foreground">加载中...</div>}
+                            {cityDetailQuery.isLoading && <div className="text-sm text-[color:var(--ink-soft)]">加载中...</div>}
                             {!cityDetailQuery.isLoading && photos.length === 0 && (
-                                <div className="text-sm text-muted-foreground">暂无照片</div>
+                                <div className="text-sm text-[color:var(--ink-soft)]">暂无照片</div>
                             )}
                             {!cityDetailQuery.isLoading && photos.length > 0 && (
                                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
                                     {photos.map((photo, idx) => (
                                         <motion.div
                                             key={photo.id ?? idx}
-                                            className="relative group rounded-lg border border-slate-200 bg-white overflow-hidden shadow-sm"
+                                            className="relative group rounded-xl border border-[color:var(--card-border)] bg-[color:var(--paper)] overflow-hidden shadow-sm"
                                             initial={{ opacity: 0, y: 8 }}
                                             animate={{ opacity: 1, y: 0 }}
                                         >
@@ -181,8 +191,10 @@ export default function FootprintManagerPage() {
                                                 className="h-32 w-full object-cover"
                                             />
                                             <div className="p-2 space-y-1">
-                                                <div className="text-sm font-medium text-slate-800 truncate">{photo.note || photo.trip || `Photo ${idx + 1}`}</div>
-                                                <div className="text-xs text-slate-500 flex items-center gap-1">
+                                                <div className="text-sm font-medium text-[color:var(--ink)] truncate">
+                                                    {photo.note || photo.trip || `Photo ${idx + 1}`}
+                                                </div>
+                                                <div className="text-xs text-[color:var(--ink-soft)] flex items-center gap-1">
                                                     <MapPin className="h-3 w-3" />
                                                     {selectedProvince} · {selectedCityName}
                                                 </div>
@@ -218,30 +230,35 @@ export default function FootprintManagerPage() {
                 </div>
             </div>
 
-            {/* Reassign modal */}
             {reassignTarget && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-                    <Card className="w-full max-w-md">
+                    <Card className="w-full max-w-md border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] shadow-[0_30px_60px_-45px_rgba(31,41,55,0.4)]">
                         <CardHeader>
-                            <CardTitle>调整归属</CardTitle>
+                            <CardTitle className="text-[color:var(--ink)]">调整归属</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-sm text-muted-foreground">省份</label>
+                                <label className="text-sm text-[color:var(--ink-muted)]">省份</label>
                                 <Input
                                     value={reassignTarget.province}
                                     onChange={(e) => setReassignTarget({ ...reassignTarget, province: e.target.value })}
+                                    className="bg-[color:var(--paper)] border-[color:var(--card-border)]"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm text-muted-foreground">城市</label>
+                                <label className="text-sm text-[color:var(--ink-muted)]">城市</label>
                                 <Input
                                     value={reassignTarget.city}
                                     onChange={(e) => setReassignTarget({ ...reassignTarget, city: e.target.value })}
+                                    className="bg-[color:var(--paper)] border-[color:var(--card-border)]"
                                 />
                             </div>
                             <div className="flex justify-end gap-2">
-                                <Button variant="ghost" onClick={() => setReassignTarget(null)}>
+                                <Button
+                                    variant="ghost"
+                                    className="text-[color:var(--ink-muted)] hover:text-[color:var(--ink)]"
+                                    onClick={() => setReassignTarget(null)}
+                                >
                                     取消
                                 </Button>
                                 <Button
@@ -253,9 +270,10 @@ export default function FootprintManagerPage() {
                                             city: reassignTarget.city,
                                         })
                                     }}
-                                    disabled={reassignMutation.isLoading}
+                                    className="bg-[color:var(--accent)] text-white hover:bg-[#92400e]"
+                                    disabled={reassignMutation.isPending}
                                 >
-                                    {reassignMutation.isLoading ? '提交中...' : '确认调整'}
+                                    {reassignMutation.isPending ? '提交中...' : '确认调整'}
                                 </Button>
                             </div>
                         </CardContent>

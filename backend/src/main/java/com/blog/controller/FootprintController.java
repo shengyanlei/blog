@@ -1,7 +1,16 @@
 package com.blog.controller;
 
 import com.blog.common.ApiResponse;
-import com.blog.dto.footprint.*;
+import com.blog.dto.footprint.AddPhotosRequest;
+import com.blog.dto.footprint.CityDetailDTO;
+import com.blog.dto.footprint.CitySummaryDTO;
+import com.blog.dto.footprint.CreateFootprintRequest;
+import com.blog.dto.footprint.FootprintStatsDTO;
+import com.blog.dto.footprint.PhotoDTO;
+import com.blog.dto.footprint.ProvinceSummaryDTO;
+import com.blog.dto.footprint.ReassignPhotoRequest;
+import com.blog.dto.footprint.UpdatePhotoNoteRequest;
+import com.blog.dto.footprint.UploadPhotoResponse;
 import com.blog.service.FootprintService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -40,11 +49,7 @@ public class FootprintController {
 
     @PostMapping("/{id}/photos")
     public ApiResponse<CityDetailDTO> addPhotos(@PathVariable Long id, @RequestBody AddPhotosRequest request) {
-        try {
-            return ApiResponse.success(footprintService.addPhotos(id, request));
-        } catch (Exception e) {
-            return ApiResponse.error("添加照片失败: " + e.getMessage());
-        }
+        return ApiResponse.success(footprintService.addPhotos(id, request));
     }
 
     @DeleteMapping("/photos/{photoId}")

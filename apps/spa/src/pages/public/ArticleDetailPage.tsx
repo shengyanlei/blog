@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -21,6 +21,8 @@ import '@uiw/react-markdown-preview/markdown.css'
 import { api, unwrapResponse } from '../../lib/api'
 import type { ApiResponse } from '../../lib/api'
 import type { ArticleDetail, Comment } from '../../types/api'
+import { buildCommentTree, type CommentTreeNode } from '../../lib/commentTree'
+import { paperPatternStyle, paperThemeVars } from '../../lib/theme'
 
 const coverImageFor = (seed: number) =>
     `https://images.unsplash.com/photo-1482192596544-9eb780fc7f66?w=1600&q=80&auto=format&fit=crop&sig=${seed}`
@@ -62,35 +64,7 @@ const createAnonymousAlias = () => {
     persistAlias(alias)
     return alias
 }
-type CommentNode = Comment & { children: CommentNode[] }
-
-const buildCommentTree = (items: Comment[]): CommentNode[] => {
-    const map = new Map<number, CommentNode>()
-    items.forEach((c) => {
-        map.set(c.id, { ...c, children: [] })
-    })
-
-    const roots: CommentNode[] = []
-    map.forEach((node) => {
-        if (node.parentId && map.has(node.parentId)) {
-            map.get(node.parentId)?.children.push(node)
-        } else {
-            roots.push(node)
-        }
-    })
-
-    const sortNodes = (list: CommentNode[], order: 'asc' | 'desc') => {
-        list.sort((a, b) => {
-            const at = a.createdAt ? new Date(a.createdAt).getTime() : 0
-            const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0
-            return order === 'desc' ? bt - at : at - bt
-        })
-        list.forEach((n) => sortNodes(n.children, 'asc'))
-    }
-
-    sortNodes(roots, 'desc')
-    return roots
-}
+type CommentNode = CommentTreeNode<Comment>
 
 type CommentItemProps = {
     node: CommentNode
@@ -287,35 +261,6 @@ export default function ArticleDetailPage() {
     const [expandedToc, setExpandedToc] = useState<Set<string>>(new Set())
     const shouldReduceMotion = useReducedMotion()
 
-    const themeStyles = useMemo(
-        () =>
-            ({
-                '--paper': '#f6f1e7',
-                '--paper-soft': '#fbf8f2',
-                '--paper-strong': '#efe6d7',
-                '--ink': '#1f2933',
-                '--ink-muted': '#6b6157',
-                '--ink-soft': '#8a8076',
-                '--accent': '#b45309',
-                '--teal': '#0f766e',
-                '--card-border': '#e3d8c8',
-                '--shadow-soft': '0 32px 60px -44px rgba(31, 41, 55, 0.35)',
-                '--font-display': '"Libre Bodoni", "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", "Times New Roman", serif',
-                '--font-body': '"Public Sans", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif',
-            }) as CSSProperties,
-        []
-    )
-
-    const paperPattern = useMemo(
-        () =>
-            ({
-                backgroundImage:
-                    'radial-gradient(circle at 12% 18%, rgba(180, 83, 9, 0.12), transparent 45%), radial-gradient(circle at 88% 0%, rgba(15, 118, 110, 0.12), transparent 40%), linear-gradient(transparent 93%, rgba(31, 41, 55, 0.04) 93%), linear-gradient(90deg, transparent 93%, rgba(31, 41, 55, 0.04) 93%)',
-                backgroundSize: '280px 280px, 320px 320px, 32px 32px, 32px 32px',
-            }) as CSSProperties,
-        []
-    )
-
     const heroMotion = shouldReduceMotion
         ? {}
         : { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.6 } }
@@ -479,9 +424,9 @@ export default function ArticleDetailPage() {
     return (
         <div
             className="relative min-h-screen bg-[color:var(--paper)] text-[color:var(--ink)] font-body selection:bg-[color:var(--paper-strong)] selection:text-[color:var(--ink)]"
-            style={themeStyles}
+            style={paperThemeVars}
         >
-            <div className="pointer-events-none absolute inset-0 opacity-70" style={paperPattern} />
+            <div className="pointer-events-none absolute inset-0 opacity-70" style={paperPatternStyle} />
 
             <motion.div
                 className="fixed left-0 top-0 z-[60] h-1 bg-gradient-to-r from-[color:var(--accent)] via-[color:var(--teal)] to-[color:var(--ink)] origin-left"
@@ -730,3 +675,4 @@ export default function ArticleDetailPage() {
         </div>
     )
 }
+

@@ -3,6 +3,7 @@ import { Card } from '@repo/ui/components/ui/card'
 import { Badge } from '@repo/ui/components/ui/badge'
 import { ArrowUpRight, Calendar, Eye, Clock } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { buildPostPath } from '../../lib/postPath'
 
 export interface PostCardProps {
     id: number
@@ -16,11 +17,6 @@ export interface PostCardProps {
     readTime?: string
     views?: number
     index?: number
-}
-
-const buildLink = (slug: string, categorySlugPath?: string) => {
-    const normalized = categorySlugPath?.replace(/^\/+|\/+$/g, '')
-    return normalized ? `/post/${normalized}/${slug}` : `/post/${slug}`
 }
 
 export function PostCard({
@@ -48,7 +44,7 @@ export function PostCard({
             transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.5, delay: index * 0.1 }}
         >
             <Card className="group h-full overflow-hidden rounded-3xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-0 shadow-[0_30px_60px_-48px_rgba(31,41,55,0.35)] transition-all duration-300 hover:-translate-y-1 hover:border-[color:var(--accent)]/40">
-                <Link to={buildLink(slug, categorySlugPath)} className="flex h-full flex-col">
+                <Link to={buildPostPath(slug, categorySlugPath)} className="flex h-full flex-col">
                     <div className="relative aspect-[4/3] w-full overflow-hidden">
                         {hasImage ? (
                             <img

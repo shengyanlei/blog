@@ -421,4 +421,119 @@
   .wave-divider .shape-fill {
     fill: #ffffff;
   }
+
+  /* Admin editor (Notion-like) */
+  .admin-editor .w-md-editor {
+    background: transparent !important;
+    border: 1px solid var(--card-border) !important;
+    border-radius: 20px !important;
+    box-shadow: var(--shadow-soft) !important;
+  }
+
+  .admin-editor .w-md-editor-toolbar {
+    background: var(--paper-soft) !important;
+    border-bottom: 1px solid var(--card-border) !important;
+    border-top-left-radius: 20px !important;
+    border-top-right-radius: 20px !important;
+    padding: 0.35rem 0.6rem !important;
+  }
+
+  .admin-editor .w-md-editor-toolbar ul {
+    gap: 0.25rem;
+  }
+
+  .admin-editor .w-md-editor-toolbar li button {
+    color: var(--ink-muted) !important;
+    border-radius: 8px !important;
+  }
+
+  .admin-editor .w-md-editor-toolbar li button:hover {
+    color: var(--ink) !important;
+    background: var(--paper-strong) !important;
+  }
+
+  .admin-editor .w-md-editor-content {
+    background: var(--paper) !important;
+    border-bottom-left-radius: 20px !important;
+    border-bottom-right-radius: 20px !important;
+  }
+
+  .admin-editor .w-md-editor-text {
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    font-size: 16px !important;
+    line-height: 1.8 !important;
+  }
+
+  .admin-editor .w-md-editor-text-input {
+    font-family: var(--font-body) !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+    padding: 22px 24px !important;
+    color: var(--ink) !important;
+    box-sizing: border-box !important;
+  }
+
+  .admin-editor .w-md-editor-text-input::placeholder {
+    color: var(--ink-soft) !important;
+  }
+
+  .admin-editor .w-md-editor-text-pre,
+  .admin-editor .w-md-editor-text-pre > code {
+    font-family: var(--font-body) !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+    color: var(--ink) !important;
+  }
+
+  .admin-editor .w-md-editor-text-pre {
+    padding: 22px 24px !important;
+    box-sizing: border-box !important;
+  }
+
+  .admin-editor .w-md-editor-text-pre > code {
+    padding: 0 !important;
+  }
+
+  .admin-editor .w-md-editor-preview {
+    padding: 24px !important;
+    background: var(--paper) !important;
+    color: var(--ink) !important;
+  }
+
+  .admin-editor .wmde-markdown,
+  .admin-editor .wmde-markdown-var {
+    background-color: transparent !important;
+    color: var(--ink) !important;
+    font-family: var(--font-body) !important;
+    line-height: 1.8 !important;
+  }
+
+  .admin-editor .wmde-markdown h1,
+  .admin-editor .wmde-markdown h2,
+  .admin-editor .wmde-markdown h3,
+  .admin-editor .wmde-markdown h4 {
+    font-family: var(--font-display) !important;
+    border-bottom: 0 !important;
+  }
+
+  .admin-editor .wmde-markdown h1 {
+    font-size: 2rem !important;
+    margin-top: 0.75rem !important;
+  }
+
+  .admin-editor .wmde-markdown h2 {
+    font-size: 1.5rem !important;
+  }
+
+  .admin-editor .wmde-markdown p,
+  .admin-editor .wmde-markdown ul,
+  .admin-editor .wmde-markdown ol {
+    margin-bottom: 0.75rem !important;
+  }
+
+  .admin-editor .wmde-markdown hr {
+    background-color: var(--card-border) !important;
+    border-bottom-color: var(--card-border) !important;
+  }
 }

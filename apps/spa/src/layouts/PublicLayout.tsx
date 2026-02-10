@@ -1,35 +1,17 @@
-﻿import { useMemo, type CSSProperties } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { Home, Info, FileText, Search, Map, Sparkles } from 'lucide-react'
 import { Button } from '@repo/ui/components/ui/button'
 import clsx from 'clsx'
+import { paperThemeVars } from '../lib/theme'
 
 export default function PublicLayout() {
     const location = useLocation()
     const isActive = (path: string) => location.pathname === path
 
     const isArticlePage = location.pathname.startsWith('/post')
-    const themeStyles = useMemo(
-        () =>
-            ({
-                '--paper': '#f6f1e7',
-                '--paper-soft': '#fbf8f2',
-                '--paper-strong': '#efe6d7',
-                '--ink': '#1f2933',
-                '--ink-muted': '#6b6157',
-                '--ink-soft': '#8a8076',
-                '--accent': '#b45309',
-                '--teal': '#0f766e',
-                '--card-border': '#e3d8c8',
-                '--shadow-soft': '0 32px 60px -44px rgba(31, 41, 55, 0.35)',
-                '--font-display': '"Libre Bodoni", "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", "Times New Roman", serif',
-                '--font-body': '"Public Sans", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif',
-            }) as CSSProperties,
-        []
-    )
 
     return (
-        <div className="flex min-h-screen flex-col" style={themeStyles}>
+        <div className="flex min-h-screen flex-col" style={paperThemeVars}>
             {!isArticlePage && (
                 <header className="fixed top-4 left-0 right-0 z-50">
                     <div className="container flex h-14 items-center justify-between rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)]/90 px-4 md:px-6 shadow-sm backdrop-blur text-[color:var(--ink)]">

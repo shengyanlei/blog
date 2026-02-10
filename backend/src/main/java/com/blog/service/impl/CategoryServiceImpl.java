@@ -7,6 +7,7 @@ import com.blog.exception.BusinessException;
 import com.blog.repository.ArticleRepository;
 import com.blog.repository.CategoryRepository;
 import com.blog.service.CategoryService;
+import com.blog.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import javax.persistence.EntityNotFoundException;
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -88,7 +88,7 @@ public class CategoryServiceImpl implements CategoryService {
             }
         }
 
-        String newSlug = slugify(request.getName());
+        String newSlug = SlugUtils.slugify(request.getName(), "category");
         String newSlugPath = buildSlugPath(parent, newSlug);
 
         categoryRepository.findBySlugPath(newSlugPath)
@@ -146,7 +146,7 @@ public class CategoryServiceImpl implements CategoryService {
                 continue;
             }
 
-            String slug = slugify(part);
+            String slug = SlugUtils.slugify(part, "category");
             String slugPath = buildSlugPath(currentParent, slug);
 
             Category existing = categoryRepository.findBySlugPath(slugPath).orElse(null);
@@ -188,19 +188,6 @@ public class CategoryServiceImpl implements CategoryService {
 
     private String buildSlugPath(Category parent, String slug) {
         return parent == null ? slug : parent.getSlugPath() + "/" + slug;
-    }
-
-    private String slugify(String input) {
-        if (!StringUtils.hasText(input)) {
-            return "category";
-        }
-        String normalized = Normalizer.normalize(input, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "");
-        return normalized.trim().toLowerCase()
-                .replaceAll("[^a-z0-9\\u4e00-\\u9fa5\\s-]", "")
-                .replaceAll("\\s+", "-")
-                .replaceAll("-+", "-")
-                .replaceAll("^-|-$", "");
     }
 
     private CategoryDTO basicDTO(Category category) {

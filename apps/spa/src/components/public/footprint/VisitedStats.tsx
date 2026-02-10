@@ -1,4 +1,4 @@
-﻿import { LocationData } from '../../../pages/public/FootprintPage'
+import type { LocationData } from '../../../types/api'
 import { MapPin, Image as ImageIcon, Calendar } from 'lucide-react'
 
 interface VisitedStatsProps {
@@ -49,3 +49,4 @@ export function VisitedStats({ data }: VisitedStatsProps) {
         </div>
     )
 }
+

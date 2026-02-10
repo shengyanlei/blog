@@ -20,6 +20,7 @@ export interface ArticleSummary {
     coverImage?: string;
     status: string;
     views: number;
+    commentCount?: number;
     publishedAt?: string;
     createdAt?: string;
     authorName?: string;
@@ -72,4 +73,36 @@ export interface PageResult<T> {
     totalPages: number;
     number: number;
     size: number;
+}
+
+export interface FootprintPhoto {
+    id?: number;
+    url: string;
+    shotAt?: string;
+    trip?: string;
+    note?: string;
+    tags?: string;
+    cover?: boolean;
+}
+
+export interface LocationData {
+    id?: number;
+    province: string;
+    city?: string;
+    visitedCities?: number;
+    visitedCitiesWithPhotos?: number;
+    visitCount: number;
+    photoCount: number;
+    lastVisited?: string;
+    tags?: string;
+    coverUrl?: string;
+    photos?: FootprintPhoto[];
+}
+
+export interface ProvinceSummary {
+    province: string;
+    visitedCities: number;
+    visitCount: number;
+    photoCount: number;
+    lastVisited?: string;
 }

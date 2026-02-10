@@ -1,1 +1,5 @@
 node_modules
+apps/spa/dist/
+apps/spa/*.log
+backend/uploads/
+backend/target/

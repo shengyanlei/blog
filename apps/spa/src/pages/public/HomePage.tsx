@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from 'react'
+import { useMemo, useState } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -12,14 +12,11 @@ import { useHeroCarousel } from '../../hooks/useHeroCarousel'
 import { api, unwrapResponse } from '../../lib/api'
 import type { ApiResponse } from '../../lib/api'
 import type { ArticleSummary, Category, Tag as TagDto, PageResult } from '../../types/api'
+import { buildPostPath } from '../../lib/postPath'
+import { paperPatternStyle, paperThemeVars } from '../../lib/theme'
 
 const coverImageFor = (seed: number) =>
     `https://images.unsplash.com/photo-1482192596544-9eb780fc7f66?w=1400&q=80&auto=format&fit=crop&sig=${seed}`
-
-const buildPostLink = (slug: string, categorySlugPath?: string) => {
-    const normalized = categorySlugPath?.replace(/^\/+|\/+$/g, '')
-    return normalized ? `/post/${normalized}/${slug}` : `/post/${slug}`
-}
 
 const formatDate = (value?: string) => {
     if (!value) return '待发布'
@@ -34,35 +31,6 @@ export default function HomePage() {
     const categoryIdParam = searchParams.get('categoryId')
     const categoryId = categoryIdParam ? Number(categoryIdParam) : undefined
     const shouldReduceMotion = useReducedMotion()
-
-    const themeStyles = useMemo(
-        () =>
-            ({
-                '--paper': '#f6f1e7',
-                '--paper-soft': '#fbf8f2',
-                '--paper-strong': '#efe6d7',
-                '--ink': '#1f2933',
-                '--ink-muted': '#6b6157',
-                '--ink-soft': '#8a8076',
-                '--accent': '#b45309',
-                '--teal': '#0f766e',
-                '--card-border': '#e3d8c8',
-                '--shadow-soft': '0 32px 60px -44px rgba(31, 41, 55, 0.35)',
-                '--font-display': '"Libre Bodoni", "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", "Times New Roman", serif',
-                '--font-body': '"Public Sans", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif',
-            }) as CSSProperties,
-        []
-    )
-
-    const paperPattern = useMemo(
-        () =>
-            ({
-                backgroundImage:
-                    'radial-gradient(circle at 12% 18%, rgba(180, 83, 9, 0.12), transparent 45%), radial-gradient(circle at 88% 0%, rgba(15, 118, 110, 0.12), transparent 40%), linear-gradient(transparent 93%, rgba(31, 41, 55, 0.04) 93%), linear-gradient(90deg, transparent 93%, rgba(31, 41, 55, 0.04) 93%)',
-                backgroundSize: '280px 280px, 320px 320px, 32px 32px, 32px 32px',
-            }) as CSSProperties,
-        []
-    )
 
     const heroMotion = shouldReduceMotion
         ? {}
@@ -128,8 +96,8 @@ export default function HomePage() {
     }
 
     return (
-        <div className="relative min-h-screen font-body bg-paper text-[color:var(--ink)]" style={themeStyles}>
-            <div className="pointer-events-none absolute inset-0 opacity-70" style={paperPattern} />
+        <div className="relative min-h-screen font-body bg-paper text-[color:var(--ink)]" style={paperThemeVars}>
+            <div className="pointer-events-none absolute inset-0 opacity-70" style={paperPatternStyle} />
 
             <section className="relative px-4 pt-24 pb-14 md:px-10">
                 <div className="mx-auto max-w-6xl">
@@ -238,7 +206,7 @@ export default function HomePage() {
                                         <Link
                                             to={
                                                 featuredPost
-                                                    ? buildPostLink(featuredPost.slug, featuredPost.category?.slugPath)
+                                                    ? buildPostPath(featuredPost.slug, featuredPost.category?.slugPath)
                                                     : '/archive'
                                             }
                                             className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-[color:var(--accent)]"
@@ -267,7 +235,7 @@ export default function HomePage() {
                                             spotlightPosts.map((post, index) => (
                                                 <Link
                                                     key={post.id}
-                                                    to={buildPostLink(post.slug, post.category?.slugPath)}
+                                                    to={buildPostPath(post.slug, post.category?.slugPath)}
                                                     className="group flex items-start gap-3 rounded-xl border border-[color:var(--card-border)] bg-white/70 p-3 transition-colors hover:border-[color:var(--accent)]/40"
                                                 >
                                                     <span className="text-xs font-semibold text-[color:var(--ink-soft)]">

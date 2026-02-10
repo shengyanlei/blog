@@ -1,7 +1,7 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import * as echarts from 'echarts'
-import { LocationData } from '../../../pages/public/FootprintPage'
+import type { LocationData } from '../../../types/api'
 
 interface ChinaMapProps {
     data: LocationData[]
@@ -122,3 +122,4 @@ export default function ChinaMap({ data, onProvinceSelect }: ChinaMapProps) {
 
     return <ReactECharts ref={chartRef} option={getOption()} style={{ height: '100%', width: '100%' }} onEvents={onEvents} />
 }
+

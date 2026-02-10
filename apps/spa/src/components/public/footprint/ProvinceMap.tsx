@@ -1,7 +1,7 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import * as echarts from 'echarts'
-import { LocationData } from '../../../pages/public/FootprintPage'
+import type { LocationData } from '../../../types/api'
 import { Button } from '@repo/ui/components/ui/button'
 
 const ADCODE_MAP: Record<string, number> = {
@@ -229,3 +229,4 @@ export default function ProvinceMap({ provinceName, data, onCitySelect, onBack }
         </div>
     )
 }
+

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Map, ListFilter, Plus } from 'lucide-react'
@@ -9,6 +9,7 @@ import CityDetail from '../../components/public/footprint/CityDetail'
 import { VisitedStats } from '../../components/public/footprint/VisitedStats'
 import { api, unwrapResponse } from '../../lib/api'
 import { useAuthStore } from '../../store/useAuthStore'
+import type { LocationData, ProvinceSummary } from '../../types/api'
 
 const STATIC_PROVINCES = [
     '北京市',
@@ -113,31 +114,9 @@ const normalizeProvinceKey = (province?: string) => {
     return hit || p
 }
 
+const isNonEmptyString = (value: string | undefined | null): value is string => Boolean(value)
+
 export type ViewLevel = 'china' | 'province' | 'city'
-
-export interface FootprintPhoto {
-    id?: number
-    url: string
-    shotAt?: string
-    trip?: string
-    note?: string
-    tags?: string
-    cover?: boolean
-}
-
-export interface LocationData {
-    id?: number
-    province: string
-    city?: string
-    visitedCities?: number
-    visitedCitiesWithPhotos?: number
-    visitCount: number
-    photoCount: number
-    lastVisited?: string
-    tags?: string
-    coverUrl?: string
-    photos?: FootprintPhoto[]
-}
 
 export default function FootprintPage() {
     const [viewLevel, setViewLevel] = useState<ViewLevel>('china')
@@ -167,43 +146,44 @@ export default function FootprintPage() {
         return true
     }
 
-    const provincesQuery = useQuery({
+    const provincesQuery = useQuery<ProvinceSummary[]>({
         queryKey: ['footprints', 'provinces'],
-        queryFn: async () => unwrapResponse((await api.get('/footprints/provinces')).data),
+        queryFn: async () =>
+            unwrapResponse((await api.get('/footprints/provinces')).data) as ProvinceSummary[],
     })
     const queryClient = useQueryClient()
-    const provinceCitiesQuery = useQuery({
+    const provinceCitiesQuery = useQuery<LocationData[]>({
         queryKey: ['footprints', 'cities', selectedProvince],
         enabled: viewLevel === 'province' && !!selectedProvince,
         queryFn: async () =>
             unwrapResponse(
                 (await api.get(`/footprints/provinces/${encodeURIComponent(selectedProvince || '')}/cities`)).data
-            ),
+            ) as LocationData[],
     })
-    const cityOptionsQuery = useQuery({
+    const cityOptionsQuery = useQuery<LocationData[]>({
         queryKey: ['footprints', 'cities', 'draft', draft.province],
         enabled: !!draft.province,
         queryFn: async () =>
             unwrapResponse(
                 (await api.get(`/footprints/provinces/${encodeURIComponent(draft.province || '')}/cities`)).data
-            ),
+            ) as LocationData[],
     })
-    const cityDetailQuery = useQuery({
+    const cityDetailQuery = useQuery<LocationData | null>({
         queryKey: ['footprints', 'city', selectedCity],
         enabled: viewLevel === 'city' && !!selectedCity && !!selectedProvince,
         queryFn: async () => {
-            const id = provinceCitiesQuery.data?.find((c: any) => c.city === selectedCity)?.id
+            const id = provinceCitiesQuery.data?.find((c) => c.city === selectedCity)?.id
             if (!id) return null
-            return unwrapResponse((await api.get(`/footprints/cities/${id}`)).data)
+            return unwrapResponse((await api.get(`/footprints/cities/${id}`)).data) as LocationData
         },
     })
 
-    const createMutation = useMutation({
+    const createMutation = useMutation<LocationData, any, void>({
         mutationFn: async () => {
             if (!token) {
                 throw new Error('未登录或权限不足')
             }
-            const dynamicCities = (cityOptionsQuery.data || []).map((c: any) => c.city).filter(Boolean)
+            const dynamicCities = (cityOptionsQuery.data || []).map((c) => c.city).filter(Boolean)
             const provinceKey = normalizeProvinceKey(draft.province)
             const allowedCities = new Set([...(STATIC_CITIES[provinceKey] || []), ...dynamicCities])
             if (!draft.city || !allowedCities.has(draft.city)) {
@@ -258,15 +238,17 @@ export default function FootprintPage() {
     }
 
     const provinceOptions = Array.from(
-        new Set([...(provincesQuery.data || []).map((p: any) => p.province), ...STATIC_PROVINCES])
-    ).filter(Boolean)
-    const cityOptions = (cityOptionsQuery.data || []).map((c: any) => c.city).filter(Boolean)
+        new Set([...(provincesQuery.data || []).map((p) => p.province), ...STATIC_PROVINCES])
+    ).filter(isNonEmptyString)
+    const cityOptions = (cityOptionsQuery.data || []).map((c) => c.city).filter(isNonEmptyString)
     const provinceKey = normalizeProvinceKey(draft.province)
-    const mergedCityOptions = Array.from(new Set([...(STATIC_CITIES[provinceKey] || []), ...cityOptions])).filter(Boolean)
+    const mergedCityOptions = Array.from(new Set([...(STATIC_CITIES[provinceKey] || []), ...cityOptions])).filter(
+        isNonEmptyString
+    )
     const filteredProvinces = provinceOptions.filter((p) =>
         p.toLowerCase().includes((draft.province || '').toLowerCase())
     )
-    const filteredCities = mergedCityOptions.filter((c: string) =>
+    const filteredCities = mergedCityOptions.filter((c) =>
         c.toLowerCase().includes((draft.city || '').toLowerCase())
     )
 
@@ -370,7 +352,7 @@ export default function FootprintPage() {
                             <VisitedStats data={provincesQuery.data || []} />
                             <div className="mt-6 bg-[color:var(--paper-soft)] rounded-2xl shadow-[0_30px_60px_-45px_rgba(31,41,55,0.35)] border border-[color:var(--card-border)] h-[85vh] min-h-[600px] relative overflow-hidden">
                                 <ChinaMap
-                                    data={(provincesQuery.data || []).map((p: any) => ({
+                                    data={(provincesQuery.data || []).map((p) => ({
                                         province: p.province,
                                         visitCount: p.visitCount,
                                         photoCount: p.photoCount,
@@ -418,7 +400,7 @@ export default function FootprintPage() {
                             <CityDetail
                                 provinceName={selectedProvince!}
                                 cityName={selectedCity}
-                                data={cityDetailQuery.data}
+                                data={cityDetailQuery.data ?? undefined}
                                 onBack={handleBack}
                             />
                         </motion.div>
@@ -623,9 +605,9 @@ export default function FootprintPage() {
                                         if (!ensureAuth()) return
                                         createMutation.mutate()
                                     }}
-                                    disabled={!draft.province || !draft.city || createMutation.isLoading}
+                                    disabled={!draft.province || !draft.city || createMutation.isPending}
                                 >
-                                    {createMutation.isLoading ? '保存中...' : '保存'}
+                                    {createMutation.isPending ? '保存中...' : '保存'}
                                 </Button>
                             </div>
                         </div>

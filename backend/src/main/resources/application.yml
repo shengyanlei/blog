@@ -24,7 +24,25 @@ spring:
 
 server:
   port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
 
 jwt:
   secret: YourSecretKeyForJWTTokenGenerationMustBeLongEnoughForHS256Algorithm
   expiration: 86400000 # 24 hours in milliseconds
+
+app:
+  frontend-url: ${APP_FRONTEND_URL:http://localhost:5173}
+
+notion:
+  token: ${NOTION_TOKEN:}
+  version: ${NOTION_VERSION:2025-09-03}
+  publicImportEnabled: ${NOTION_PUBLIC_IMPORT_ENABLED:false}
+  oauth:
+    client-id: ${NOTION_OAUTH_CLIENT_ID:}
+    client-secret: ${NOTION_OAUTH_CLIENT_SECRET:}
+    redirect-uri: ${NOTION_OAUTH_REDIRECT_URI:}
+    success-redirect: ${NOTION_OAUTH_SUCCESS_REDIRECT:/admin/upload}

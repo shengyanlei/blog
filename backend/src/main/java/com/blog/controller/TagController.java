@@ -5,7 +5,6 @@ import com.blog.dto.tag.TagDTO;
 import com.blog.dto.tag.TagRequest;
 import com.blog.service.TagService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +18,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/tags")
 @RequiredArgsConstructor
-@Slf4j
 public class TagController {
 
     private final TagService tagService;
@@ -29,13 +27,8 @@ public class TagController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<List<TagDTO>>> getAllTags() {
-        try {
-            List<TagDTO> tags = tagService.getAllTags();
-            return ResponseEntity.ok(ApiResponse.success(tags));
-        } catch (Exception e) {
-            log.error("获取标签列表失败: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+        List<TagDTO> tags = tagService.getAllTags();
+        return ResponseEntity.ok(ApiResponse.success(tags));
     }
 
     /**
@@ -43,13 +36,8 @@ public class TagController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<TagDTO>> getTagById(@PathVariable Long id) {
-        try {
-            TagDTO tag = tagService.getTagById(id);
-            return ResponseEntity.ok(ApiResponse.success(tag));
-        } catch (Exception e) {
-            log.error("获取标签失败: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+        TagDTO tag = tagService.getTagById(id);
+        return ResponseEntity.ok(ApiResponse.success(tag));
     }
 
     /**
@@ -58,13 +46,8 @@ public class TagController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<TagDTO>> createTag(@Valid @RequestBody TagRequest request) {
-        try {
-            TagDTO tag = tagService.createTag(request);
-            return ResponseEntity.ok(ApiResponse.success("创建成功", tag));
-        } catch (Exception e) {
-            log.error("创建标签失败: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+        TagDTO tag = tagService.createTag(request);
+        return ResponseEntity.ok(ApiResponse.success("创建成功", tag));
     }
 
     /**
@@ -73,12 +56,7 @@ public class TagController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteTag(@PathVariable Long id) {
-        try {
-            tagService.deleteTag(id);
-            return ResponseEntity.ok(ApiResponse.success());
-        } catch (Exception e) {
-            log.error("删除标签失败: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+        tagService.deleteTag(id);
+        return ResponseEntity.ok(ApiResponse.success());
     }
 }
