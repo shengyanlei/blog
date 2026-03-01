@@ -1,6 +1,7 @@
 package com.blog.security;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -27,6 +28,9 @@ public class SecurityConfig {
 
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Value("${app.frontend-url:http://localhost:5173}")
+    private String frontendUrl;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -73,14 +77,21 @@ public class SecurityConfig {
     }
 
     /**
-     * Global CORS: allow dev front-end (5173) and localhost/127.*.
+     * Global CORS: allow configured front-end origin and common local development networks.
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Allow common local network segments so the dev server on 0.0.0.0 (including WSL/VM bridges) won't hit CORS 403.
-        configuration.setAllowedOriginPatterns(
-                List.of("http://localhost:*", "http://127.0.0.1:*", "http://192.168.*:*", "http://172.*:*", "http://10.*:*"));
+        List<String> allowedOriginPatterns = new java.util.ArrayList<>(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "http://192.168.*:*",
+                "http://172.*:*",
+                "http://10.*:*"));
+        if (frontendUrl != null && !frontendUrl.isBlank()) {
+            allowedOriginPatterns.add(frontendUrl.trim());
+        }
+        configuration.setAllowedOriginPatterns(allowedOriginPatterns);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

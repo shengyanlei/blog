@@ -7,7 +7,8 @@ export interface ApiResponse<T> {
     data: T;
 }
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api';
+const envApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+export const API_BASE_URL = envApiBaseUrl || (import.meta.env.DEV ? 'http://localhost:8080/api' : '/api');
 export const API_HOST = API_BASE_URL.replace(/\/api$/, '');
 
 export const api = axios.create({
