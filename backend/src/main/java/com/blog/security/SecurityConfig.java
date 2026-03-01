@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.ExpressionUrlAuthorizationConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,6 +33,9 @@ public class SecurityConfig {
     @Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
 
+    @Value("${app.auth.public-register-enabled:true}")
+    private boolean publicRegisterEnabled;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -44,14 +48,22 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
+        ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry authorizeRequests = http
                 .cors().and()
                 .csrf().disable()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests()
                 .antMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                .antMatchers("/api/auth/**").permitAll()
+                .antMatchers(HttpMethod.POST, "/api/auth/login").permitAll();
+
+        if (publicRegisterEnabled) {
+            authorizeRequests.antMatchers(HttpMethod.POST, "/api/auth/register").permitAll();
+        } else {
+            authorizeRequests.antMatchers(HttpMethod.POST, "/api/auth/register").denyAll();
+        }
+
+        authorizeRequests
                 .antMatchers(HttpMethod.GET, "/api/articles", "/api/articles/", "/api/articles/*",
                         "/api/articles/slug/*").permitAll()
                 .antMatchers(HttpMethod.GET, "/api/categories/**", "/api/tags/**").permitAll()
@@ -69,9 +81,9 @@ public class SecurityConfig {
                 .antMatchers(HttpMethod.POST, "/api/articles/**").hasRole("ADMIN")
                 .antMatchers(HttpMethod.PUT, "/api/articles/**").hasRole("ADMIN")
                 .antMatchers(HttpMethod.DELETE, "/api/articles/**").hasRole("ADMIN")
-                .anyRequest().authenticated()
-                .and()
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .anyRequest().authenticated();
+
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

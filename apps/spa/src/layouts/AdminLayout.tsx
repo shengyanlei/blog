@@ -59,7 +59,7 @@ export default function AdminLayout() {
                         ))}
                     </nav>
                 </aside>
-                <main className="flex w-full flex-1 flex-col overflow-hidden px-6 pb-10 pt-6">
+                <main className="flex w-full flex-1 flex-col overflow-y-auto px-6 pb-10 pt-6">
                     <div className="mx-auto w-full max-w-6xl">
                         <Outlet />
                     </div>

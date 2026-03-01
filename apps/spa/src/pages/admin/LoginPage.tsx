@@ -6,6 +6,7 @@ import { Input } from '@repo/ui/components/ui/input'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
+import { isAxiosError } from 'axios'
 import { api, unwrapResponse } from '../../lib/api'
 import type { ApiResponse } from '../../lib/api'
 import type { AuthResponse } from '../../types/api'
@@ -15,12 +16,16 @@ export default function LoginPage() {
     const login = useAuthStore((state) => state.login)
     const navigate = useNavigate()
     const location = useLocation()
-    const [username, setUsername] = useState('admin')
-    const [password, setPassword] = useState('admin123')
+    const [username, setUsername] = useState('')
+    const [password, setPassword] = useState('')
 
     const loginMutation = useMutation({
         mutationFn: async () => {
-            const res = await api.post<ApiResponse<AuthResponse>>('/auth/login', { username, password })
+            const payload = {
+                username: username.trim(),
+                password: password.trim(),
+            }
+            const res = await api.post<ApiResponse<AuthResponse>>('/auth/login', payload)
             return unwrapResponse(res.data)
         },
         onSuccess: (data) => {
@@ -28,13 +33,28 @@ export default function LoginPage() {
             const redirect = (location.state as any)?.from?.pathname ?? '/admin/dashboard'
             navigate(redirect, { replace: true })
         },
-        onError: () => {
-            alert('登录失败，请检查账号或密码')
+        onError: (error) => {
+            if (isAxiosError(error)) {
+                const message = (error.response?.data as { message?: string } | undefined)?.message
+                if (message && message.trim()) {
+                    alert(message)
+                    return
+                }
+                if (error.response?.status === 401) {
+                    alert('用户名或密码错误')
+                    return
+                }
+            }
+            alert('登录失败，请稍后重试')
         },
     })
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault()
+        if (!username.trim() || !password.trim()) {
+            alert('请输入用户名和密码')
+            return
+        }
         loginMutation.mutate()
     }
 
@@ -66,7 +86,7 @@ export default function LoginPage() {
                                 <label className="text-sm font-medium text-[color:var(--ink)]">用户名</label>
                                 <Input
                                     type="text"
-                                    placeholder="admin"
+                                    placeholder="请输入用户名"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     className="bg-[color:var(--paper)] border-[color:var(--card-border)] text-[color:var(--ink)] placeholder:text-[color:var(--ink-soft)] focus-visible:ring-[color:var(--accent)]/30"
@@ -78,7 +98,7 @@ export default function LoginPage() {
                                 <label className="text-sm font-medium text-[color:var(--ink)]">密码</label>
                                 <Input
                                     type="password"
-                                    placeholder="••••••••"
+                                    placeholder="请输入密码"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="bg-[color:var(--paper)] border-[color:var(--card-border)] text-[color:var(--ink)] placeholder:text-[color:var(--ink-soft)] focus-visible:ring-[color:var(--accent)]/30"
@@ -102,14 +122,9 @@ export default function LoginPage() {
                                 )}
                             </Button>
                         </form>
-
-                        <div className="mt-6 text-sm text-[color:var(--ink-soft)]">
-                            演示账号：用户名 admin / 密码 admin123
-                        </div>
                     </CardContent>
                 </Card>
             </motion.div>
         </div>
     )
 }
-

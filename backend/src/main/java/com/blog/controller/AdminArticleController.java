@@ -1,6 +1,7 @@
 package com.blog.controller;
 
 import com.blog.common.ApiResponse;
+import com.blog.dto.article.ArticleDetailDTO;
 import com.blog.dto.article.ArticleSummaryDTO;
 import com.blog.dto.article.NotionImportPreviewResponse;
 import com.blog.dto.article.NotionImportRequest;
@@ -14,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,6 +43,13 @@ public class AdminArticleController {
         Pageable pageable = PageRequest.of(page, size);
         Page<ArticleSummaryDTO> articles = articleService.getAllArticles(pageable);
         return ResponseEntity.ok(ApiResponse.success(articles));
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<ArticleDetailDTO>> getArticleDetail(@PathVariable Long id) {
+        ArticleDetailDTO article = articleService.getArticleDetailForAdmin(id);
+        return ResponseEntity.ok(ApiResponse.success(article));
     }
 
     @PostMapping("/import-notion/preview")

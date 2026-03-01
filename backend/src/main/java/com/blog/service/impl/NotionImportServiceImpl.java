@@ -21,9 +21,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URLEncoder;
@@ -63,6 +65,15 @@ public class NotionImportServiceImpl implements NotionImportService {
 
     @Value("${notion.publicImportEnabled:false}")
     private boolean publicImportEnabled;
+
+    @Value("${notion.connect-timeout-ms:8000}")
+    private int notionConnectTimeoutMs;
+
+    @Value("${notion.read-timeout-ms:15000}")
+    private int notionReadTimeoutMs;
+
+    @Value("${notion.max-retries:2}")
+    private int notionMaxRetries;
 
     @Override
     public NotionImportPreviewResponse preview(NotionImportRequest request, String username) {
@@ -239,8 +250,26 @@ public class NotionImportServiceImpl implements NotionImportService {
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             HttpEntity<Object> entity = new HttpEntity<>(body, headers);
-            RestTemplate restTemplate = new RestTemplate();
-            return restTemplate.exchange(url, method, entity, JsonNode.class);
+            RestTemplate restTemplate = createRestTemplate();
+            int maxAttempts = Math.max(1, notionMaxRetries + 1);
+
+            for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+                try {
+                    return restTemplate.exchange(url, method, entity, JsonNode.class);
+                } catch (ResourceAccessException ex) {
+                    boolean canRetry = attempt < maxAttempts && isRetryableNetworkError(ex);
+                    if (!canRetry) {
+                        log.error("Notion API request failed after {} attempt(s): {} {}", attempt, method, url, ex);
+                        throw new BusinessException("Notion API 请求失败，请检查网络、代理或 TLS 配置");
+                    }
+
+                    long backoffMs = calculateBackoffMs(attempt);
+                    log.warn("Notion API transient network error (attempt {}/{}): {}. Retrying in {}ms",
+                            attempt, maxAttempts, ex.getMessage(), backoffMs);
+                    sleepQuietly(backoffMs);
+                }
+            }
+            throw new BusinessException("Notion API 请求失败，请检查网络、代理或 TLS 配置");
         } catch (HttpClientErrorException.Unauthorized e) {
             throw new BusinessException("Notion Token 无效或未配置，请检查 NOTION_TOKEN 或 OAuth 授权");
         } catch (HttpClientErrorException.Forbidden e) {
@@ -251,9 +280,44 @@ public class NotionImportServiceImpl implements NotionImportService {
             String msg = e.getResponseBodyAsString();
             log.error("Notion API error ({}): {}", e.getStatusCode(), msg);
             throw new BusinessException("Notion API 调用失败：" + e.getStatusCode());
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Notion API request failed", e);
             throw new BusinessException("Notion API 请求失败，请检查网络、代理或 TLS 配置");
+        }
+    }
+
+    private RestTemplate createRestTemplate() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Math.max(1000, notionConnectTimeoutMs));
+        requestFactory.setReadTimeout(Math.max(1000, notionReadTimeoutMs));
+        return new RestTemplate(requestFactory);
+    }
+
+    private boolean isRetryableNetworkError(ResourceAccessException ex) {
+        String message = ex.getMessage();
+        if (message == null) {
+            return true;
+        }
+        String normalized = message.toLowerCase(Locale.ROOT);
+        return normalized.contains("connection reset")
+                || normalized.contains("timed out")
+                || normalized.contains("connection aborted")
+                || normalized.contains("broken pipe");
+    }
+
+    private long calculateBackoffMs(int attempt) {
+        long base = 300L;
+        long delay = base * (1L << Math.max(0, attempt - 1));
+        return Math.min(delay, 2000L);
+    }
+
+    private void sleepQuietly(long milliseconds) {
+        try {
+            Thread.sleep(milliseconds);
+        } catch (InterruptedException interruptedException) {
+            Thread.currentThread().interrupt();
         }
     }
 

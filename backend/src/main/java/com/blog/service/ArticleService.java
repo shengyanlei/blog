@@ -43,6 +43,11 @@ public interface ArticleService {
     ArticleDetailDTO getArticleBySlug(String slug);
 
     /**
+     * 管理端按 ID 获取文章详情（不增加浏览量）
+     */
+    ArticleDetailDTO getArticleDetailForAdmin(Long id);
+
+    /**
      * 创建文章
      */
     Long createArticle(ArticleCreateRequest request, String username);

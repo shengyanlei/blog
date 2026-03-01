@@ -1,14 +1,17 @@
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui/components/ui/card'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { Badge } from '@repo/ui/components/ui/badge'
 import { Button } from '@repo/ui/components/ui/button'
-import { FileText, Trash2 } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui/components/ui/card'
+import { FileText, Pencil, Trash2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { api, unwrapResponse } from '../../lib/api'
+import { buildPostPath } from '../../lib/postPath'
 import type { ApiResponse } from '../../lib/api'
 import type { ArticleSummary, PageResult } from '../../types/api'
-import { buildPostPath } from '../../lib/postPath'
 
 export default function ArticleManagerPage() {
+    const navigate = useNavigate()
+
     const articlesQuery = useQuery({
         queryKey: ['admin-articles'],
         queryFn: async () => {
@@ -26,8 +29,12 @@ export default function ArticleManagerPage() {
             })
             return unwrapResponse(res.data)
         },
-        onSuccess: () => articlesQuery.refetch(),
-        onError: () => alert('更新发布状态失败'),
+        onSuccess: () => {
+            articlesQuery.refetch()
+        },
+        onError: () => {
+            alert('更新发布状态失败')
+        },
     })
 
     const deleteMutation = useMutation({
@@ -35,8 +42,12 @@ export default function ArticleManagerPage() {
             const res = await api.delete<ApiResponse<void>>(`/articles/${id}`)
             return unwrapResponse(res.data)
         },
-        onSuccess: () => articlesQuery.refetch(),
-        onError: () => alert('删除文章失败，请稍后重试'),
+        onSuccess: () => {
+            articlesQuery.refetch()
+        },
+        onError: () => {
+            alert('删除文章失败，请稍后重试')
+        },
     })
 
     const articles = articlesQuery.data?.content ?? []
@@ -44,6 +55,14 @@ export default function ArticleManagerPage() {
 
     const buildPath = (article: ArticleSummary) => {
         return buildPostPath(article.slug, article.category?.slugPath)
+    }
+
+    const goToEditor = (article: ArticleSummary) => {
+        if (article.status !== 'DRAFT') {
+            alert('仅可编辑取消发布/草稿文章，请先取消发布')
+            return
+        }
+        navigate(`/admin/write?articleId=${article.id}`)
     }
 
     return (
@@ -101,6 +120,17 @@ export default function ArticleManagerPage() {
                                                 onClick={() => window.open(buildPath(article), '_blank')}
                                             >
                                                 预览
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="border-[color:var(--card-border)] text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] hover:bg-[color:var(--paper-strong)]"
+                                                onClick={() => goToEditor(article)}
+                                                disabled={article.status !== 'DRAFT'}
+                                                title={article.status === 'DRAFT' ? '编辑草稿文章' : '请先取消发布后再编辑'}
+                                            >
+                                                <Pencil className="h-3.5 w-3.5 mr-1" />
+                                                编辑
                                             </Button>
                                             <Button
                                                 size="sm"

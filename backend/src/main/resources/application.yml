@@ -36,6 +36,10 @@ jwt:
 
 app:
   frontend-url: ${APP_FRONTEND_URL:http://localhost:5173}
+  auth:
+    public-register-enabled: true
+  seed:
+    default-admin-enabled: false
 
 notion:
   token: ${NOTION_TOKEN:}

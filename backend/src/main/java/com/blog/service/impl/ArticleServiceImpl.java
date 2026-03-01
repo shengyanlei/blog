@@ -19,6 +19,7 @@ import com.blog.repository.UserRepository;
 import com.blog.service.ArticleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -97,6 +98,17 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public ArticleDetailDTO getArticleDetailForAdmin(Long id) {
+        log.info("Fetching admin article detail by id: {}", id);
+
+        Article article = articleRepository.findWithDetailsById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Article not found"));
+
+        return convertToDetailDTO(article);
+    }
+
+    @Override
     @Transactional
     public Long createArticle(ArticleCreateRequest request, String username) {
         log.info("Creating article: {}", request.getTitle());
@@ -138,6 +150,10 @@ public class ArticleServiceImpl implements ArticleService {
 
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Article not found"));
+
+        if ("PUBLISHED".equalsIgnoreCase(article.getStatus())) {
+            throw new BusinessException("已发布文章请先取消发布再编辑", HttpStatus.CONFLICT);
+        }
 
         if (request.getTitle() != null) {
             article.setTitle(request.getTitle());

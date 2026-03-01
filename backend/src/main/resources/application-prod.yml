@@ -1,0 +1,10 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+app:
+  auth:
+    public-register-enabled: false
+  seed:
+    default-admin-enabled: false
