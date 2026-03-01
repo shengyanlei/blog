@@ -14,6 +14,7 @@ import type { ApiResponse } from '../../lib/api'
 import type { ArticleSummary, Category, Tag as TagDto, PageResult } from '../../types/api'
 import { buildPostPath } from '../../lib/postPath'
 import { paperPatternStyle, paperThemeVars } from '../../lib/theme'
+import { getSiteConfig } from '../../config/siteConfig'
 
 const coverImageFor = (seed: number) =>
     `https://images.unsplash.com/photo-1482192596544-9eb780fc7f66?w=1400&q=80&auto=format&fit=crop&sig=${seed}`
@@ -31,6 +32,9 @@ export default function HomePage() {
     const categoryIdParam = searchParams.get('categoryId')
     const categoryId = categoryIdParam ? Number(categoryIdParam) : undefined
     const shouldReduceMotion = useReducedMotion()
+    const config = getSiteConfig()
+    const brand = config.site.brand
+    const profile = config.site.profile
 
     const heroMotion = shouldReduceMotion
         ? {}
@@ -105,13 +109,13 @@ export default function HomePage() {
                         <div className="space-y-6">
                             <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.4em] text-[color:var(--ink-soft)]">
                                 <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--accent)]" />
-                                Glacier Log
+                                {brand.heroEyebrow}
                             </div>
                             <h1 className="text-[clamp(2.75rem,5vw,5rem)] font-display leading-[1.05]">
-                                霜蓝札记
+                                {brand.heroTitle}
                             </h1>
                             <p className="max-w-xl text-base md:text-lg text-[color:var(--ink-muted)] leading-relaxed first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:text-4xl first-letter:leading-none first-letter:font-display first-letter:text-[color:var(--accent)]">
-                                在设计、代码与慢旅行之间，收集清冷的观察与技术笔记，把灵感写成可以回访的地标。
+                                {brand.heroDescription}
                             </p>
                             <SearchBar
                                 value={keyword}
@@ -189,7 +193,7 @@ export default function HomePage() {
                                 </div>
                                 <div className="space-y-4 p-6">
                                     <h3 className="text-2xl font-display text-[color:var(--ink)]">
-                                        {featuredPost?.title ?? '欢迎来到霜蓝札记'}
+                                        {featuredPost?.title ?? `欢迎来到${brand.heroTitle}`}
                                     </h3>
                                     <p className="text-sm text-[color:var(--ink-muted)] line-clamp-2">
                                         {featuredPost?.summary ?? '用清晰的记录沉淀灵感与实践。'}
@@ -320,16 +324,16 @@ export default function HomePage() {
                         <div className="rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-6 shadow-[0_20px_50px_-40px_rgba(31,41,55,0.35)]">
                             <div className="flex items-center gap-4">
                                 <Avatar className="h-14 w-14 border border-[color:var(--card-border)] bg-white">
-                                    <AvatarImage src="https://avatars.githubusercontent.com/u/1?v=4" />
-                                    <AvatarFallback>SY</AvatarFallback>
+                                    <AvatarImage src={profile.avatarUrl} />
+                                    <AvatarFallback>{profile.initials}</AvatarFallback>
                                 </Avatar>
                                 <div>
                                     <p className="text-[11px] uppercase tracking-[0.3em] text-[color:var(--ink-soft)]">
                                         Author
                                     </p>
-                                    <h3 className="text-lg font-display text-[color:var(--ink)]">shyl</h3>
+                                    <h3 className="text-lg font-display text-[color:var(--ink)]">{profile.name}</h3>
                                     <p className="text-xs text-[color:var(--ink-muted)]">
-                                        用视觉与文字记录理性与感性的交汇。
+                                        {profile.bio}
                                     </p>
                                 </div>
                             </div>

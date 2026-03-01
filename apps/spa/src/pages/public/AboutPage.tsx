@@ -1,53 +1,13 @@
 import { Link } from 'react-router-dom'
 import { ArrowUpRight, BookOpen, Mail, MapPin, Sparkles } from 'lucide-react'
 import { paperPatternStyle, paperThemeVars } from '../../lib/theme'
-
-const focusAreas = [
-    {
-        title: '产品叙事',
-        description: '把产品体验拆成结构化笔记，让灵感可以复用。',
-    },
-    {
-        title: '前端工程',
-        description: '从组件到系统，关注可维护与长期演进。',
-    },
-    {
-        title: '视觉排版',
-        description: '用杂志式的版式训练，让文字更有呼吸感。',
-    },
-]
-
-const principles = [
-    '用简洁而一致的框架记录复杂问题',
-    '每篇文章至少留下一个可复用的方案',
-    '在设计与工程之间寻找平衡',
-]
-
-const nowList = [
-    '搭建更轻盈的设计系统',
-    '收集城市里的微光与色调',
-    '练习慢写作的节奏感',
-]
-
-const timeline = [
-    {
-        year: '2022',
-        title: '建立第一版知识图谱',
-        note: '把项目复盘与灵感收集放在同一条时间线里。',
-    },
-    {
-        year: '2023',
-        title: '完成多篇设计系统拆解',
-        note: '将抽象概念沉淀成可复用的组件规则。',
-    },
-    {
-        year: '2024',
-        title: '开始书写「城市与技术」系列',
-        note: '把旅行与编码的节奏揉成叙事稿。',
-    },
-]
+import { getSiteConfig } from '../../config/siteConfig'
 
 export default function AboutPage() {
+    const config = getSiteConfig()
+    const profile = config.site.profile
+    const about = config.about
+
     return (
         <div className="relative min-h-screen bg-paper font-body text-[color:var(--ink)]" style={paperThemeVars}>
             <div className="pointer-events-none absolute inset-0 opacity-70" style={paperPatternStyle} />
@@ -60,23 +20,23 @@ export default function AboutPage() {
                             About
                         </div>
                         <h1 className="text-[clamp(2.5rem,4.5vw,4.5rem)] font-display leading-[1.05]">
-                            关于我
+                            {about.heading}
                         </h1>
                         <p className="text-base md:text-lg text-[color:var(--ink-muted)] leading-relaxed">
-                            我在设计、前端与写作之间切换，把复杂问题拆解成可复用的结构。这里记录思考、实践与城市漫游，希望这些笔记能为你留下灵感的标记。
+                            {about.intro}
                         </p>
                         <div className="flex flex-wrap items-center gap-3 text-xs">
                             <Link
                                 to="/archive"
                                 className="rounded-full border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] px-4 py-2 font-semibold text-[color:var(--ink)] transition-colors hover:border-[color:var(--accent)]/40 hover:text-[color:var(--accent)]"
                             >
-                                查看文章
+                                {about.ctaArchive}
                             </Link>
                             <Link
                                 to="/about"
                                 className="rounded-full bg-[color:var(--ink)] px-4 py-2 font-semibold text-[color:var(--paper-soft)] transition-colors hover:bg-black"
                             >
-                                联系我
+                                {about.ctaContact}
                             </Link>
                         </div>
                     </div>
@@ -84,40 +44,39 @@ export default function AboutPage() {
                     <div className="rounded-3xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-6 shadow-[0_28px_55px_-45px_rgba(31,41,55,0.35)]">
                         <div className="flex items-center gap-4">
                             <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[color:var(--card-border)] bg-[color:var(--paper-strong)] text-2xl font-display text-[color:var(--ink)]">
-                                S
+                                {profile.initials}
                             </div>
                             <div>
                                 <p className="text-[11px] uppercase tracking-[0.3em] text-[color:var(--ink-soft)]">
-                                    Writer / Engineer
+                                    {profile.role}
                                 </p>
-                                <h2 className="text-2xl font-display text-[color:var(--ink)]">shyl</h2>
-                                <p className="text-sm text-[color:var(--ink-muted)]">记录技术与生活的交汇。</p>
+                                <h2 className="text-2xl font-display text-[color:var(--ink)]">{profile.name}</h2>
+                                <p className="text-sm text-[color:var(--ink-muted)]">{profile.bio}</p>
                             </div>
                         </div>
                         <div className="mt-6 grid gap-3 text-sm text-[color:var(--ink-muted)]">
                             <div className="flex items-center gap-2">
                                 <MapPin className="h-4 w-4 text-[color:var(--accent)]" />
-                                深圳 / 远程协作
+                                {profile.location}
                             </div>
                             <div className="flex items-center gap-2">
                                 <BookOpen className="h-4 w-4 text-[color:var(--accent)]" />
-                                产品体验、设计系统、前端工程
+                                {profile.expertise}
                             </div>
                             <div className="flex items-center gap-2">
                                 <Mail className="h-4 w-4 text-[color:var(--accent)]" />
-                                hello@shyl.dev
+                                {profile.email}
                             </div>
                         </div>
                         <div className="mt-6 flex flex-wrap gap-2 text-xs">
-                            <span className="rounded-full border border-[color:var(--card-border)] bg-white px-3 py-1 text-[color:var(--ink-muted)]">
-                                Portfolio
-                            </span>
-                            <span className="rounded-full border border-[color:var(--card-border)] bg-white px-3 py-1 text-[color:var(--ink-muted)]">
-                                UI/UX
-                            </span>
-                            <span className="rounded-full border border-[color:var(--card-border)] bg-white px-3 py-1 text-[color:var(--ink-muted)]">
-                                Writing
-                            </span>
+                            {profile.tags.map((tag) => (
+                                <span
+                                    key={tag}
+                                    className="rounded-full border border-[color:var(--card-border)] bg-white px-3 py-1 text-[color:var(--ink-muted)]"
+                                >
+                                    {tag}
+                                </span>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -130,11 +89,11 @@ export default function AboutPage() {
                             <p className="text-xs uppercase tracking-[0.4em] text-[color:var(--ink-soft)]">
                                 Focus
                             </p>
-                            <h2 className="text-2xl font-display text-[color:var(--ink)]">写作方向</h2>
+                            <h2 className="text-2xl font-display text-[color:var(--ink)]">{about.focusTitle}</h2>
                         </div>
                     </div>
                     <div className="mt-6 grid gap-6 md:grid-cols-3">
-                        {focusAreas.map((area) => (
+                        {about.focusAreas.map((area) => (
                             <div
                                 key={area.title}
                                 className="rounded-3xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-6 shadow-[0_22px_45px_-38px_rgba(31,41,55,0.35)]"
@@ -156,9 +115,9 @@ export default function AboutPage() {
             <section className="relative px-4 pb-12 md:px-10">
                 <div className="mx-auto max-w-6xl grid gap-6 lg:grid-cols-[1fr_1fr]">
                     <div className="rounded-3xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-6 shadow-[0_22px_45px_-38px_rgba(31,41,55,0.35)]">
-                        <h3 className="text-xl font-display text-[color:var(--ink)]">工作方式</h3>
+                        <h3 className="text-xl font-display text-[color:var(--ink)]">{about.principlesTitle}</h3>
                         <ul className="mt-4 space-y-2 text-sm text-[color:var(--ink-muted)]">
-                            {principles.map((item) => (
+                            {about.principles.map((item) => (
                                 <li key={item} className="flex items-start gap-2">
                                     <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[color:var(--accent)]" />
                                     {item}
@@ -167,9 +126,9 @@ export default function AboutPage() {
                         </ul>
                     </div>
                     <div className="rounded-3xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-6 shadow-[0_22px_45px_-38px_rgba(31,41,55,0.35)]">
-                        <h3 className="text-xl font-display text-[color:var(--ink)]">最近在做</h3>
+                        <h3 className="text-xl font-display text-[color:var(--ink)]">{about.nowTitle}</h3>
                         <ul className="mt-4 space-y-2 text-sm text-[color:var(--ink-muted)]">
-                            {nowList.map((item) => (
+                            {about.nowList.map((item) => (
                                 <li key={item} className="flex items-start gap-2">
                                     <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[color:var(--teal)]" />
                                     {item}
@@ -187,13 +146,13 @@ export default function AboutPage() {
                             <p className="text-xs uppercase tracking-[0.4em] text-[color:var(--ink-soft)]">
                                 Timeline
                             </p>
-                            <h2 className="text-2xl font-display text-[color:var(--ink)]">时间线</h2>
+                            <h2 className="text-2xl font-display text-[color:var(--ink)]">{about.timelineTitle}</h2>
                         </div>
                     </div>
                     <div className="mt-6 space-y-4">
-                        {timeline.map((item) => (
+                        {about.timeline.map((item) => (
                             <div
-                                key={item.year}
+                                key={`${item.year}-${item.title}`}
                                 className="flex flex-col gap-3 rounded-3xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-6 shadow-[0_20px_40px_-35px_rgba(31,41,55,0.35)] md:flex-row md:items-center md:justify-between"
                             >
                                 <div>
@@ -205,7 +164,7 @@ export default function AboutPage() {
                                     to="/archive"
                                     className="inline-flex items-center gap-1 text-xs font-semibold text-[color:var(--accent)]"
                                 >
-                                    查看相关记录
+                                    查看相关文章
                                     <ArrowUpRight className="h-3.5 w-3.5" />
                                 </Link>
                             </div>
@@ -216,4 +175,3 @@ export default function AboutPage() {
         </div>
     )
 }
-

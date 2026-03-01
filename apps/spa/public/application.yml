@@ -1,0 +1,58 @@
+site:
+  meta:
+    title: "碎念随风"
+    subtitle: "设计、前端与写作"
+  brand:
+    navName: "碎念随风"
+    heroEyebrow: "Glacier Log"
+    heroTitle: "霜蓝札记"
+    heroDescription: "在设计、代码与慢旅行之间，收集观察与技术笔记。"
+    footerText: "© codex 提供技术支持"
+    navLabels:
+      home: "首页"
+      about: "关于"
+      archive: "文章"
+      footprint: "足迹"
+      admin: "后台管理"
+  profile:
+    name: "shyl"
+    initials: "S"
+    role: "Writer / Engineer"
+    bio: "记录技术与生活的交汇。"
+    location: "北京 / 远程协作"
+    expertise: "数据开发"
+    email: "s13934738165@163.com"
+    tags: ["Ai", "BigData", "Writing"]
+    avatarUrl: "/images/avatar.png"
+
+about:
+  heading: "关于我：一个写代码也写生活的人"
+  intro: "我是大数据方向的程序员，日常和数据仓库、流处理、指标体系打交道；业余喜欢把技术琢磨成有趣故事。这个博客记录我对工程、效率和生活的观察，既讲方法，也讲温度。"
+  ctaArchive: "逛逛文章"
+  ctaContact: "来聊两句"
+  focusTitle: "我主要写这些"
+  focusAreas:
+    - title: "大数据工程实战"
+      description: "围绕 Spark、Flink、湖仓和调度体系，沉淀能直接落地的工程经验。"
+    - title: "数据分析与业务洞察"
+      description: "从指标定义到归因分析，把复杂数据讲清楚、讲明白、讲到能决策。"
+    - title: "程序员生活与灵感"
+      description: "记录写代码之外的有趣片段：阅读、城市、效率工具和一些不正经思考。"
+  principlesTitle: "我的写作原则"
+  principles:
+    - "先跑通，再优雅；先可解释，再追求炫技。"
+    - "每篇文章至少留下一个可复用脚本、模板或排障思路。"
+    - "技术要有硬度，表达要有温度，内容要有点好玩。"
+  nowTitle: "最近在折腾"
+  nowList:
+    - "打磨个人数据实验室：Kafka + Flink + Iceberg。"
+    - "做“数据小玩具”系列，把抽象概念做成看得见的演示。"
+    - "持续训练表达：把复杂问题讲到新人也能听懂。"
+  timelineTitle: "时间线"
+  timeline:
+    - year: "2025"
+      title: "利用Ai搭建个人博客系统"
+      note: "把项目复盘与灵感收集放在同一条时间线上。"
+    - year: "2026"
+      title: "主线：找个女朋友"
+      note: "认真经营关系，学会表达、沟通与陪伴。"

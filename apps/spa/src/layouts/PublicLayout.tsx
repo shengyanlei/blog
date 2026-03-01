@@ -3,12 +3,15 @@ import { Home, Info, FileText, Search, Map, Sparkles } from 'lucide-react'
 import { Button } from '@repo/ui/components/ui/button'
 import clsx from 'clsx'
 import { paperThemeVars } from '../lib/theme'
+import { getSiteConfig } from '../config/siteConfig'
 
 export default function PublicLayout() {
     const location = useLocation()
     const isActive = (path: string) => location.pathname === path
 
     const isArticlePage = location.pathname.startsWith('/post')
+    const config = getSiteConfig()
+    const navLabels = config.site.brand.navLabels
 
     return (
         <div className="flex min-h-screen flex-col" style={paperThemeVars}>
@@ -17,7 +20,7 @@ export default function PublicLayout() {
                     <div className="container flex h-14 items-center justify-between rounded-2xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)]/90 px-4 md:px-6 shadow-sm backdrop-blur text-[color:var(--ink)]">
                         <Link to="/" className="flex items-center gap-2 text-sm font-semibold tracking-[0.3em] uppercase font-display">
                             <Sparkles className="h-4 w-4 text-[color:var(--accent)]" />
-                            <span>碎念随风</span>
+                            <span>{config.site.brand.navName}</span>
                         </Link>
 
                         <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[color:var(--ink-muted)]">
@@ -29,7 +32,7 @@ export default function PublicLayout() {
                                 )}
                             >
                                 <Home className="h-4 w-4" />
-                                首页
+                                {navLabels.home}
                             </Link>
                             <Link
                                 to="/about"
@@ -39,7 +42,7 @@ export default function PublicLayout() {
                                 )}
                             >
                                 <Info className="h-4 w-4" />
-                                关于
+                                {navLabels.about}
                             </Link>
                             <Link
                                 to="/archive"
@@ -49,7 +52,7 @@ export default function PublicLayout() {
                                 )}
                             >
                                 <FileText className="h-4 w-4" />
-                                文章
+                                {navLabels.archive}
                             </Link>
                             <Link
                                 to="/footprint"
@@ -59,7 +62,7 @@ export default function PublicLayout() {
                                 )}
                             >
                                 <Map className="h-4 w-4" />
-                                足迹
+                                {navLabels.footprint}
                             </Link>
                         </nav>
 
@@ -72,7 +75,7 @@ export default function PublicLayout() {
                             </button>
                             <Link to="/admin/login">
                                 <Button variant="secondary" size="sm" className="bg-[color:var(--ink)] text-[color:var(--paper-soft)] hover:bg-black">
-                                    后台管理
+                                    {navLabels.admin}
                                 </Button>
                             </Link>
                         </div>
@@ -86,7 +89,7 @@ export default function PublicLayout() {
 
             <footer className="py-8 md:px-8 md:py-10 bg-transparent text-[color:var(--ink-muted)] border-t border-[color:var(--card-border)]">
                 <div className="container flex flex-col items-center justify-between gap-4 md:flex-row text-sm">
-                    <p className="text-center md:text-left">© Antigravity 提供技术支持</p>
+                    <p className="text-center md:text-left">{config.site.brand.footerText}</p>
                 </div>
             </footer>
         </div>
