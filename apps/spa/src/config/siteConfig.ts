@@ -83,7 +83,9 @@ const stripInlineComment = (line: string) => {
 }
 
 const tokenizeYaml = (yamlText: string): Token[] => {
-    const normalized = yamlText.replace(/\r\n?/g, '\n')
+    const normalized = yamlText
+        .replace(/^\uFEFF/, '')
+        .replace(/\r\n?/g, '\n')
     const lines = normalized.split('\n')
     const tokens: Token[] = []
 
@@ -505,6 +507,10 @@ export const initSiteConfig = async (): Promise<SiteConfig> => {
         }
         const rawText = await response.text()
         const parsed = parseYaml(rawText)
+        const root = asRecord(parsed)
+        if (!root || !asRecord(root.site) || !asRecord(root.about)) {
+            throw new Error('Invalid application.yml root keys: missing site/about')
+        }
         currentSiteConfig = normalizeSiteConfig(parsed)
         return currentSiteConfig
     } catch (error) {

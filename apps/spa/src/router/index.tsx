@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+﻿import { createBrowserRouter } from 'react-router-dom'
 import RootLayout from '../layouts/RootLayout'
 import PublicLayout from '../layouts/PublicLayout'
 import AdminLayout from '../layouts/AdminLayout'
@@ -17,6 +17,7 @@ import CategoryManagerPage from '../pages/admin/CategoryManagerPage'
 import CommentManagerPage from '../pages/admin/CommentManagerPage'
 import FootprintManagerPage from '../pages/admin/FootprintManagerPage'
 import NotionOAuthCallbackPage from '../pages/admin/NotionOAuthCallbackPage'
+import SettingsPage from '../pages/admin/SettingsPage'
 
 const defaultError = <div className="p-6 text-red-600">抱歉，页面不存在或发生错误。</div>
 const adminError = <div className="p-6 text-red-600">抱歉，后台页面出错或不存在。</div>
@@ -54,6 +55,7 @@ export const router = createBrowserRouter([
                     { path: 'tags', element: <TagManagerPage /> },
                     { path: 'categories', element: <CategoryManagerPage /> },
                     { path: 'footprints', element: <FootprintManagerPage /> },
+                    { path: 'settings', element: <SettingsPage /> },
                 ],
             },
         ],

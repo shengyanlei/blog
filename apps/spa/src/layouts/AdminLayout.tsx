@@ -1,4 +1,4 @@
-import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
+﻿import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/useAuthStore'
 import { LayoutDashboard, FileText, Settings, Pencil, Tag, MessageSquare, Upload, MapPinned } from 'lucide-react'
 import { paperThemeVars } from '../lib/theme'
@@ -20,7 +20,7 @@ export default function AdminLayout() {
         { to: '/admin/tags', label: '标签管理', icon: Tag },
         { to: '/admin/categories', label: '分类管理', icon: FileText },
         { to: '/admin/footprints', label: '足迹管理', icon: MapPinned },
-        { to: '/admin/settings', label: '设置', icon: Settings, disabled: true },
+        { to: '/admin/settings', label: '设置', icon: Settings },
     ]
 
     return (
@@ -39,7 +39,7 @@ export default function AdminLayout() {
             <div className="flex flex-1">
                 <aside className="hidden md:flex w-60 flex-col border-r border-[color:var(--card-border)] bg-[color:var(--paper-soft)] px-4 py-6">
                     <nav className="grid items-start gap-2">
-                        {navItems.map(({ to, label, icon: Icon, disabled }) => (
+                        {navItems.map(({ to, label, icon: Icon }) => (
                             <NavLink
                                 key={to}
                                 to={to}
@@ -49,7 +49,6 @@ export default function AdminLayout() {
                                         isActive
                                             ? 'bg-[color:var(--paper-strong)] text-[color:var(--ink)]'
                                             : 'text-[color:var(--ink-muted)] hover:bg-[color:var(--paper-strong)] hover:text-[color:var(--ink)]',
-                                        disabled ? 'opacity-60 pointer-events-none' : '',
                                     ].join(' ')
                                 }
                             >

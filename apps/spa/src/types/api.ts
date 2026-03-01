@@ -1,3 +1,5 @@
+import type { SiteConfig } from '../config/siteConfig'
+
 export interface Category {
     id: number;
     name: string;
@@ -105,4 +107,24 @@ export interface ProvinceSummary {
     visitCount: number;
     photoCount: number;
     lastVisited?: string;
+}
+
+export interface UpdatePasswordRequest {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+}
+
+export interface AdminSiteConfigResponse {
+    config: SiteConfig;
+    sourcePath: string;
+    lastModified?: string | null;
+    writable: boolean;
+    backupPath?: string | null;
+}
+
+export interface AdminProfileResponse {
+    username: string;
+    role: string;
+    email: string;
 }

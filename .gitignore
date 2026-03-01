@@ -3,3 +3,4 @@ apps/spa/dist/
 apps/spa/*.log
 backend/uploads/
 backend/target/
+apps/spa/public/*.bak

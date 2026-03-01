@@ -8,3 +8,7 @@ app:
     public-register-enabled: true
   seed:
     default-admin-enabled: true
+  site-config:
+    path: ${APP_SITE_CONFIG_PATH:../apps/spa/public/application.yml}
+    backup-dir: ${APP_SITE_CONFIG_BACKUP_DIR:}
+    max-backups: ${APP_SITE_CONFIG_MAX_BACKUPS:20}

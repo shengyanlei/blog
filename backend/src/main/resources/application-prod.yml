@@ -8,3 +8,7 @@ app:
     public-register-enabled: false
   seed:
     default-admin-enabled: false
+  site-config:
+    path: ${APP_SITE_CONFIG_PATH}
+    backup-dir: ${APP_SITE_CONFIG_BACKUP_DIR:}
+    max-backups: ${APP_SITE_CONFIG_MAX_BACKUPS:20}
