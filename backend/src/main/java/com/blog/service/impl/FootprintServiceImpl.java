@@ -93,6 +93,9 @@ public class FootprintServiceImpl implements FootprintService {
                 .orElseGet(FootprintLocation::new);
         location.setProvince(request.getProvince());
         location.setCity(request.getCity());
+        if (!StringUtils.hasText(location.getCountry())) {
+            location.setCountry("\u4E2D\u56FD");
+        }
         location.setVisitCount(Optional.ofNullable(request.getVisitCount()).orElse(1));
         location.setLastVisited(Optional.ofNullable(request.getLastVisited()).orElse(LocalDate.now()));
         location.setTags(request.getTags());
@@ -163,6 +166,7 @@ public class FootprintServiceImpl implements FootprintService {
                     FootprintLocation loc = new FootprintLocation();
                     loc.setProvince(targetProvince);
                     loc.setCity(targetCity);
+                    loc.setCountry("\u4E2D\u56FD");
                     loc.setVisitCount(1);
                     loc.setLastVisited(LocalDate.now());
                     return locationRepository.save(loc);

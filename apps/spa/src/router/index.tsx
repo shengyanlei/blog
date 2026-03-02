@@ -18,6 +18,8 @@ import CommentManagerPage from '../pages/admin/CommentManagerPage'
 import FootprintManagerPage from '../pages/admin/FootprintManagerPage'
 import NotionOAuthCallbackPage from '../pages/admin/NotionOAuthCallbackPage'
 import SettingsPage from '../pages/admin/SettingsPage'
+import PrototypeFootprintChroniclePage from '../pages/prototype/PrototypeFootprintChroniclePage'
+import PrototypeAdminFootprintChroniclePage from '../pages/prototype/PrototypeAdminFootprintChroniclePage'
 
 const defaultError = <div className="p-6 text-red-600">抱歉，页面不存在或发生错误。</div>
 const adminError = <div className="p-6 text-red-600">抱歉，后台页面出错或不存在。</div>
@@ -42,6 +44,8 @@ export const router = createBrowserRouter([
             },
             { path: '/admin/login', element: <LoginPage /> },
             { path: '/admin/notion/callback', element: <NotionOAuthCallbackPage /> },
+            { path: '/prototype/footprint-chronicle', element: <PrototypeFootprintChroniclePage /> },
+            { path: '/prototype/admin-footprint-chronicle', element: <PrototypeAdminFootprintChroniclePage /> },
             {
                 path: '/admin',
                 element: <AdminLayout />,

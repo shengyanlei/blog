@@ -1,620 +1,630 @@
-import { useEffect, useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Map, ListFilter, Plus } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { AnimatePresence, motion } from 'framer-motion'
+import {
+    Calendar,
+    Camera,
+    ChevronRight,
+    Clock3,
+    Compass,
+    Filter,
+    MapPin,
+    Search,
+    Sparkles,
+    Tag,
+    Users,
+    Wallet,
+} from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Button } from '@repo/ui/components/ui/button'
-import ChinaMap from '../../components/public/footprint/ChinaMap'
-import ProvinceMap from '../../components/public/footprint/ProvinceMap'
-import CityDetail from '../../components/public/footprint/CityDetail'
-import { VisitedStats } from '../../components/public/footprint/VisitedStats'
-import { api, unwrapResponse } from '../../lib/api'
+import { api, API_HOST, unwrapResponse } from '../../lib/api'
 import { useAuthStore } from '../../store/useAuthStore'
-import type { LocationData, ProvinceSummary } from '../../types/api'
+import type { TravelJourneyDetail, TravelJourneySummary, TravelPlan, TravelPlanStatus } from '../../types/api'
 
-const STATIC_PROVINCES = [
-    '北京市',
-    '天津市',
-    '上海市',
-    '重庆市',
-    '河北省',
-    '山西省',
-    '辽宁省',
-    '吉林省',
-    '黑龙江省',
-    '江苏省',
-    '浙江省',
-    '安徽省',
-    '福建省',
-    '江西省',
-    '山东省',
-    '河南省',
-    '湖北省',
-    '湖南省',
-    '广东省',
-    '广西壮族自治区',
-    '海南省',
-    '四川省',
-    '贵州省',
-    '云南省',
-    '西藏自治区',
-    '陕西省',
-    '甘肃省',
-    '青海省',
-    '宁夏回族自治区',
-    '新疆维吾尔自治区',
-    '内蒙古自治区',
-    '香港特别行政区',
-    '澳门特别行政区',
-    '台湾省',
-]
+const parseTags = (value?: string) =>
+    (value || '')
+        .split(/[,，]/)
+        .map((item) => item.trim())
+        .filter(Boolean)
 
-const STATIC_CITIES: Record<string, string[]> = {
-    北京市: ['北京市'],
-    天津市: ['天津市'],
-    上海市: ['上海市'],
-    重庆市: ['重庆市'],
-    河北省: ['石家庄', '唐山', '秦皇岛', '邯郸', '邢台', '保定', '张家口', '承德', '沧州', '廊坊', '衡水'],
-    山西省: ['太原', '大同', '阳泉', '长治', '晋城', '朔州', '晋中', '运城', '忻州', '临汾', '吕梁'],
-    辽宁省: ['沈阳', '大连', '鞍山', '抚顺', '本溪', '丹东', '锦州', '营口', '阜新', '辽阳', '盘锦', '铁岭', '朝阳', '葫芦岛'],
-    吉林省: ['长春', '吉林', '四平', '辽源', '通化', '白山', '松原', '白城', '延边朝鲜族自治州'],
-    黑龙江省: ['哈尔滨', '齐齐哈尔', '牡丹江', '佳木斯', '大庆', '伊春', '鸡西', '鹤岗', '双鸭山', '七台河', '黑河', '绥化', '大兴安岭地区'],
-    江苏省: ['南京', '苏州', '无锡', '常州', '镇江', '南通', '泰州', '扬州', '盐城', '连云港', '淮安', '宿迁'],
-    浙江省: ['杭州', '宁波', '温州', '嘉兴', '湖州', '绍兴', '金华', '衢州', '舟山', '台州', '丽水'],
-    安徽省: ['合肥', '芜湖', '蚌埠', '淮南', '马鞍山', '淮北', '铜陵', '安庆', '黄山', '滁州', '阜阳', '宿州', '六安', '亳州', '池州', '宣城'],
-    福建省: ['福州', '厦门', '莆田', '三明', '泉州', '漳州', '南平', '龙岩', '宁德'],
-    江西省: ['南昌', '景德镇', '萍乡', '九江', '新余', '鹰潭', '赣州', '吉安', '宜春', '抚州', '上饶'],
-    山东省: ['济南', '青岛', '淄博', '枣庄', '东营', '烟台', '潍坊', '济宁', '泰安', '威海', '日照', '临沂', '德州', '聊城', '滨州', '菏泽'],
-    河南省: ['郑州', '开封', '洛阳', '平顶山', '安阳', '鹤壁', '新乡', '焦作', '濮阳', '许昌', '漯河', '三门峡', '南阳', '商丘', '信阳', '周口', '驻马店', '济源'],
-    湖北省: ['武汉', '黄石', '十堰', '宜昌', '襄阳', '鄂州', '荆门', '孝感', '荆州', '黄冈', '咸宁', '随州', '恩施土家族苗族自治州', '仙桃', '潜江', '天门', '神农架林区'],
-    湖南省: ['长沙', '株洲', '湘潭', '衡阳', '邵阳', '岳阳', '常德', '张家界', '益阳', '郴州', '永州', '怀化', '娄底', '湘西土家族苗族自治州'],
-    广东省: ['广州', '深圳', '珠海', '汕头', '佛山', '韶关', '湛江', '肇庆', '江门', '茂名', '惠州', '梅州', '汕尾', '河源', '阳江', '清远', '东莞', '中山', '潮州', '揭阳', '云浮'],
-    广西壮族自治区: ['南宁', '柳州', '桂林', '梧州', '北海', '防城港', '钦州', '贵港', '玉林', '百色', '贺州', '河池', '来宾', '崇左'],
-    海南省: ['海口', '三亚', '三沙', '儋州', '文昌', '万宁', '东方', '五指山', '定安县', '屯昌县', '澄迈县', '临高县', '琼海', '琼中黎族苗族自治县', '保亭黎族苗族自治县', '白沙黎族自治县', '昌江黎族自治县', '乐东黎族自治县', '陵水黎族自治县'],
-    四川省: ['成都', '自贡', '攀枝花', '泸州', '德阳', '绵阳', '广元', '遂宁', '内江', '乐山', '南充', '眉山', '宜宾', '广安', '达州', '雅安', '巴中', '资阳', '阿坝藏族羌族自治州', '甘孜藏族自治州', '凉山彝族自治州'],
-    贵州省: ['贵阳', '六盘水', '遵义', '安顺', '毕节', '铜仁', '黔西南布依族苗族自治州', '黔东南苗族侗族自治州', '黔南布依族苗族自治州'],
-    云南省: ['昆明', '曲靖', '玉溪', '保山', '昭通', '丽江', '普洱', '临沧', '楚雄彝族自治州', '红河哈尼族彝族自治州', '文山壮族苗族自治州', '西双版纳傣族自治州', '大理白族自治州', '德宏傣族景颇族自治州', '怒江傈僳族自治州', '迪庆藏族自治州'],
-    西藏自治区: ['拉萨', '日喀则', '昌都', '林芝', '山南', '那曲', '阿里地区'],
-    陕西省: ['西安', '铜川', '宝鸡', '咸阳', '渭南', '延安', '汉中', '榆林', '安康', '商洛'],
-    甘肃省: ['兰州', '嘉峪关', '金昌', '白银', '天水', '武威', '张掖', '平凉', '酒泉', '庆阳', '定西', '陇南', '临夏回族自治州', '甘南藏族自治州'],
-    青海省: ['西宁', '海东', '海北藏族自治州', '黄南藏族自治州', '海南藏族自治州', '果洛藏族自治州', '玉树藏族自治州', '海西蒙古族藏族自治州'],
-    宁夏回族自治区: ['银川', '石嘴山', '吴忠', '固原', '中卫'],
-    新疆维吾尔自治区: [
-        '乌鲁木齐',
-        '克拉玛依',
-        '吐鲁番',
-        '哈密',
-        '昌吉回族自治州',
-        '博尔塔拉蒙古自治州',
-        '巴音郭楞蒙古自治州',
-        '阿克苏',
-        '克孜勒苏柯尔克孜自治州',
-        '喀什',
-        '和田',
-        '伊犁哈萨克自治州',
-        '塔城',
-        '阿勒泰',
-    ],
-    内蒙古自治区: ['呼和浩特', '包头', '乌海', '赤峰', '通辽', '鄂尔多斯', '呼伦贝尔', '巴彦淖尔', '乌兰察布', '兴安盟', '锡林郭勒盟', '阿拉善盟'],
-    香港特别行政区: ['香港特别行政区'],
-    澳门特别行政区: ['澳门特别行政区'],
-    台湾省: ['台北', '新北', '桃园', '台中', '台南', '高雄', '基隆', '新竹', '嘉义', '宜兰', '彰化', '南投', '云林', '屏东', '台东', '花莲', '澎湖'],
+const formatPeriod = (startDate?: string, endDate?: string) => {
+    if (startDate && endDate) return `${startDate} 至 ${endDate}`
+    return startDate || endDate || '日期待定'
 }
 
-const normalizeProvinceKey = (province?: string) => {
-    if (!province) return ''
-    const p = province.trim()
-    if (STATIC_CITIES[p]) return p
-    const candidates = [
-        `${p}省`,
-        `${p}市`,
-        `${p}自治区`,
-        `${p}特别行政区`,
-    ]
-    const hit = candidates.find((k) => STATIC_CITIES[k])
-    return hit || p
+const toMediaUrl = (url?: string) => {
+    if (!url) return ''
+    if (url.startsWith('http://') || url.startsWith('https://')) return url
+    return `${API_HOST}${url}`
 }
 
-const isNonEmptyString = (value: string | undefined | null): value is string => Boolean(value)
+const getYearLabel = (startDate?: string, endDate?: string) => {
+    const date = startDate || endDate
+    if (!date) return '未标注'
+    const value = date.slice(0, 4)
+    return /^\d{4}$/.test(value) ? value : '未标注'
+}
 
-export type ViewLevel = 'china' | 'province' | 'city'
+const formatBudget = (min?: number, max?: number) => {
+    if (typeof min === 'number' && typeof max === 'number') return `¥${min} - ¥${max}`
+    if (typeof min === 'number') return `¥${min}+`
+    if (typeof max === 'number') return `≤ ¥${max}`
+    return '未记录'
+}
+
+const statusLabelMap: Record<TravelPlanStatus, string> = {
+    IDEA: '灵感池',
+    PLANNING: '规划中',
+    BOOKED: '已预订',
+    DONE: '已完成',
+    CANCELED: '已取消',
+}
+
+const statusClassMap: Record<TravelPlanStatus, string> = {
+    IDEA: 'bg-fuchsia-500/20 text-fuchsia-100 border-fuchsia-400/35',
+    PLANNING: 'bg-amber-500/20 text-amber-100 border-amber-400/35',
+    BOOKED: 'bg-sky-500/20 text-sky-100 border-sky-400/35',
+    DONE: 'bg-emerald-500/20 text-emerald-100 border-emerald-400/35',
+    CANCELED: 'bg-slate-500/20 text-slate-200 border-slate-400/35',
+}
 
 export default function FootprintPage() {
-    const [viewLevel, setViewLevel] = useState<ViewLevel>('china')
-    const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
-    const [selectedCity, setSelectedCity] = useState<string | null>(null)
-    const [showAdd, setShowAdd] = useState(false)
-    const [errorMsg, setErrorMsg] = useState<string | null>(null)
-    const [draft, setDraft] = useState<{ province: string; city: string; visitCount: number; tags: string; photoUrl: string }>({
-        province: '',
-        city: '',
-        visitCount: 1,
-        tags: '',
-        photoUrl: '',
-    })
-    const [photoFile, setPhotoFile] = useState<File | null>(null)
-    const [showProvinceDropdown, setShowProvinceDropdown] = useState(false)
-    const [showCityDropdown, setShowCityDropdown] = useState(false)
-    const [provinceActiveIndex, setProvinceActiveIndex] = useState(0)
-    const [cityActiveIndex, setCityActiveIndex] = useState(0)
     const token = useAuthStore((state) => state.token)
+    const [year, setYear] = useState<string>('')
+    const [keyword, setKeyword] = useState('')
+    const [tag, setTag] = useState('')
+    const [onlyWithPhotos, setOnlyWithPhotos] = useState(false)
+    const [selectedJourneyId, setSelectedJourneyId] = useState<number | null>(null)
+    const [showLocationOverview, setShowLocationOverview] = useState(true)
 
-    const ensureAuth = () => {
-        if (!token) {
-            setErrorMsg('需要登录后台后才能新增或上传足迹，请点击右上角“后台管理”先登录。')
-            return false
-        }
-        return true
-    }
-
-    const provincesQuery = useQuery<ProvinceSummary[]>({
-        queryKey: ['footprints', 'provinces'],
-        queryFn: async () =>
-            unwrapResponse((await api.get('/footprints/provinces')).data) as ProvinceSummary[],
+    const yearsQuery = useQuery<number[]>({
+        queryKey: ['journeys', 'years'],
+        queryFn: async () => unwrapResponse((await api.get('/journeys/years')).data) as number[],
     })
-    const queryClient = useQueryClient()
-    const provinceCitiesQuery = useQuery<LocationData[]>({
-        queryKey: ['footprints', 'cities', selectedProvince],
-        enabled: viewLevel === 'province' && !!selectedProvince,
+
+    const journeysQuery = useQuery<TravelJourneySummary[]>({
+        queryKey: ['journeys', year, keyword, tag],
         queryFn: async () =>
             unwrapResponse(
-                (await api.get(`/footprints/provinces/${encodeURIComponent(selectedProvince || '')}/cities`)).data
-            ) as LocationData[],
-    })
-    const cityOptionsQuery = useQuery<LocationData[]>({
-        queryKey: ['footprints', 'cities', 'draft', draft.province],
-        enabled: !!draft.province,
-        queryFn: async () =>
-            unwrapResponse(
-                (await api.get(`/footprints/provinces/${encodeURIComponent(draft.province || '')}/cities`)).data
-            ) as LocationData[],
-    })
-    const cityDetailQuery = useQuery<LocationData | null>({
-        queryKey: ['footprints', 'city', selectedCity],
-        enabled: viewLevel === 'city' && !!selectedCity && !!selectedProvince,
-        queryFn: async () => {
-            const id = provinceCitiesQuery.data?.find((c) => c.city === selectedCity)?.id
-            if (!id) return null
-            return unwrapResponse((await api.get(`/footprints/cities/${id}`)).data) as LocationData
-        },
-    })
-
-    const createMutation = useMutation<LocationData, any, void>({
-        mutationFn: async () => {
-            if (!token) {
-                throw new Error('未登录或权限不足')
-            }
-            const dynamicCities = (cityOptionsQuery.data || []).map((c) => c.city).filter(Boolean)
-            const provinceKey = normalizeProvinceKey(draft.province)
-            const allowedCities = new Set([...(STATIC_CITIES[provinceKey] || []), ...dynamicCities])
-            if (!draft.city || !allowedCities.has(draft.city)) {
-                throw new Error('请选择当前省份下的城市')
-            }
-            let coverUrl = draft.photoUrl
-            if (photoFile) {
-                const formData = new FormData()
-                formData.append('file', photoFile)
-                const uploadRes = unwrapResponse(
-                    (
-                        await api.post('/footprints/upload', formData, {
-                            headers: { 'Content-Type': 'multipart/form-data' },
-                        })
-                    ).data
-                ) as { url: string }
-                coverUrl = uploadRes.url
-            }
-            return unwrapResponse(
                 (
-                    await api.post('/footprints', {
-                        province: draft.province,
-                        city: draft.city,
-                        visitCount: draft.visitCount,
-                        tags: draft.tags,
-                        photos: coverUrl ? [{ url: coverUrl, cover: true }] : [],
+                    await api.get('/journeys', {
+                        params: {
+                            year: year ? Number(year) : undefined,
+                            keyword: keyword || undefined,
+                            tag: tag || undefined,
+                        },
                     })
                 ).data
-            )
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['footprints'] })
-            setShowAdd(false)
-            setDraft({ province: '', city: '', visitCount: 1, tags: '', photoUrl: '' })
-            setPhotoFile(null)
-            setErrorMsg(null)
-        },
-        onError: (err: any) => {
-            if (err?.response?.status === 401 || err?.response?.status === 403 || err?.message === '未登录或权限不足') {
-                setErrorMsg('未登录或权限不足，请先登录后台后再保存。')
-                return
-            }
-            const message = err?.response?.data?.message || err?.message || '保存失败，请稍后重试'
-            setErrorMsg(message)
-        },
+            ) as TravelJourneySummary[],
     })
 
-    const handleProvinceSelect = (provinceName: string) => {
-        setSelectedProvince(provinceName)
-        setSelectedCity(null)
-        setViewLevel('province')
-    }
+    const selectedJourneyQuery = useQuery<TravelJourneyDetail>({
+        queryKey: ['journeys', 'detail', selectedJourneyId],
+        enabled: !!selectedJourneyId,
+        queryFn: async () =>
+            unwrapResponse((await api.get(`/journeys/${selectedJourneyId}`)).data) as TravelJourneyDetail,
+    })
 
-    const provinceOptions = Array.from(
-        new Set([...(provincesQuery.data || []).map((p) => p.province), ...STATIC_PROVINCES])
-    ).filter(isNonEmptyString)
-    const cityOptions = (cityOptionsQuery.data || []).map((c) => c.city).filter(isNonEmptyString)
-    const provinceKey = normalizeProvinceKey(draft.province)
-    const mergedCityOptions = Array.from(new Set([...(STATIC_CITIES[provinceKey] || []), ...cityOptions])).filter(
-        isNonEmptyString
-    )
-    const filteredProvinces = provinceOptions.filter((p) =>
-        p.toLowerCase().includes((draft.province || '').toLowerCase())
-    )
-    const filteredCities = mergedCityOptions.filter((c) =>
-        c.toLowerCase().includes((draft.city || '').toLowerCase())
-    )
+    const plansQuery = useQuery<TravelPlan[]>({
+        queryKey: ['travel-plans', 'private'],
+        enabled: !!token,
+        queryFn: async () => unwrapResponse((await api.get('/travel-plans')).data) as TravelPlan[],
+    })
+
+    const filteredTimelineData = useMemo(() => {
+        const source = journeysQuery.data || []
+        if (!onlyWithPhotos) return source
+        return source.filter((item) => item.photoCount > 0)
+    }, [journeysQuery.data, onlyWithPhotos])
+
+    const timelineData = useMemo(() => {
+        const deduped = new Map<string, TravelJourneySummary>()
+        filteredTimelineData.forEach((item) => {
+            const key = `${item.title.trim()}|${item.startDate || ''}|${item.endDate || ''}`
+            const existing = deduped.get(key)
+            if (!existing) {
+                deduped.set(key, item)
+                return
+            }
+            const currentPhotos = item.photoCount || 0
+            const existingPhotos = existing.photoCount || 0
+            if (currentPhotos > existingPhotos || item.id > existing.id) {
+                deduped.set(key, item)
+            }
+        })
+        return Array.from(deduped.values()).sort((a, b) => {
+            const leftDate = a.startDate || a.endDate || ''
+            const rightDate = b.startDate || b.endDate || ''
+            const byDate = rightDate.localeCompare(leftDate)
+            if (byDate !== 0) return byDate
+            return b.id - a.id
+        })
+    }, [filteredTimelineData])
 
     useEffect(() => {
-        setProvinceActiveIndex(0)
-    }, [draft.province])
-
-    useEffect(() => {
-        setCityActiveIndex(0)
-    }, [draft.city, draft.province])
-
-    const handleCitySelect = (cityName: string) => {
-        setSelectedCity(cityName)
-        setViewLevel('city')
-    }
-
-    const handleBack = () => {
-        if (viewLevel === 'city') {
-            setViewLevel('province')
-            setSelectedCity(null)
-        } else if (viewLevel === 'province') {
-            setViewLevel('china')
-            setSelectedProvince(null)
+        if (timelineData.length && !timelineData.some((item) => item.id === selectedJourneyId)) {
+            setSelectedJourneyId(timelineData[0].id)
         }
-    }
+        if (!timelineData.length) {
+            setSelectedJourneyId(null)
+        }
+    }, [timelineData, selectedJourneyId])
 
-    const handleBackToNational = () => {
-        setViewLevel('china')
-        setSelectedProvince(null)
-        setSelectedCity(null)
-    }
+    const overview = useMemo(() => {
+        const journeys = timelineData
+        const photoCount = journeys.reduce((acc, item) => acc + (item.photoCount || 0), 0)
+        const cityCount = new Set(journeys.flatMap((item) => item.cities || [])).size
+        return {
+            journeys: journeys.length,
+            photos: photoCount,
+            cities: cityCount,
+            years: new Set(journeys.map((item) => getYearLabel(item.startDate, item.endDate))).size,
+        }
+    }, [timelineData])
+
+    const groupedTimeline = useMemo(() => {
+        const map = new Map<string, TravelJourneySummary[]>()
+        timelineData.forEach((item) => {
+            const key = getYearLabel(item.startDate, item.endDate)
+            const list = map.get(key)
+            if (list) {
+                list.push(item)
+                return
+            }
+            map.set(key, [item])
+        })
+
+        return Array.from(map.entries())
+            .sort(([left], [right]) => {
+                if (left === '未标注') return 1
+                if (right === '未标注') return -1
+                return Number(right) - Number(left)
+            })
+            .map(([groupYear, items]) => ({
+                year: groupYear,
+                items: [...items].sort((a, b) => {
+                    const left = a.startDate || a.endDate || ''
+                    const right = b.startDate || b.endDate || ''
+                    return right.localeCompare(left)
+                }),
+            }))
+    }, [timelineData])
+
+    const activeJourney = selectedJourneyQuery.data
+
+    const planPreview = useMemo(() => {
+        const source = plansQuery.data || []
+        return [...source]
+            .sort((a, b) => {
+                const left = a.startDate || '9999-12-31'
+                const right = b.startDate || '9999-12-31'
+                return left.localeCompare(right)
+            })
+            .slice(0, 3)
+    }, [plansQuery.data])
 
     return (
-        <div className="min-h-screen bg-[color:var(--paper)] pt-16 pb-20 text-[color:var(--ink)] font-body">
-            {/* Header / Top Bar */}
-            <div className="sticky top-16 z-40 bg-[color:var(--paper-soft)]/90 backdrop-blur-md border-b border-[color:var(--card-border)] px-4 py-3 shadow-sm">
-                <div className="container mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Map className="h-5 w-5 text-[color:var(--accent)]" />
-                        <h1 className="text-lg font-semibold text-[color:var(--ink)] font-display">我的足迹</h1>
+        <div className="relative min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#f4f7ff_0%,#edf2ff_45%,#eef6ff_100%)] pt-24 pb-16 text-[color:var(--ink)] md:pt-28">
+            <div className="pointer-events-none absolute left-1/2 top-0 -z-10 h-80 w-[56rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.18)_0%,rgba(37,99,235,0)_72%)]" />
+            <div className="pointer-events-none absolute -left-20 top-[24rem] -z-10 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(14,165,233,0.15)_0%,rgba(14,165,233,0)_72%)]" />
+            <div className="pointer-events-none absolute -right-16 top-[34rem] -z-10 h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(125,211,252,0.2)_0%,rgba(125,211,252,0)_70%)]" />
 
-                        {/* Breadcrumbs */}
-                        {viewLevel !== 'china' && (
-                            <div className="flex items-center gap-2 text-sm text-[color:var(--ink-soft)] ml-4 pl-4 border-l border-[color:var(--card-border)]">
-                                <button onClick={handleBackToNational} className="hover:text-[color:var(--accent)] transition-colors">
-                                    全国
-                                </button>
-                                <span>&gt;</span>
-                                <button
-                                    onClick={() => viewLevel === 'city' && handleBack()}
-                                    className={`${viewLevel === 'city' ? 'hover:text-[color:var(--accent)] transition-colors' : 'font-medium text-[color:var(--ink)]'}`}
-                                >
-                                    {selectedProvince}
-                                </button>
-                                {viewLevel === 'city' && (
-                                    <>
-                                        <span>&gt;</span>
-                                        <span className="font-medium text-[color:var(--ink)]">{selectedCity}</span>
-                                    </>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="gap-1 text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] hover:bg-[color:var(--paper-strong)]"
-                        >
-                            <ListFilter className="h-4 w-4" />
-                            <span className="hidden sm:inline">统计/筛选</span>
-                        </Button>
-                        <Button
-                            size="sm"
-                            className="gap-1 bg-[color:var(--accent)] hover:bg-[#92400e] text-white shadow-sm"
-                            onClick={() => {
-                                setErrorMsg(null)
-                                if (!ensureAuth()) return
-                                setShowAdd(true)
-                            }}
-                        >
-                            <Plus className="h-4 w-4" />
-                            <span className="hidden sm:inline">添加足迹</span>
-                        </Button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Main Content Area */}
-            <div className="container mx-auto px-4 py-6 relative min-h-[600px]">
-                <AnimatePresence mode="wait">
-                    {viewLevel === 'china' && (
-                        <motion.div
-                            key="china"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 1.05 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <VisitedStats data={provincesQuery.data || []} />
-                            <div className="mt-6 bg-[color:var(--paper-soft)] rounded-2xl shadow-[0_30px_60px_-45px_rgba(31,41,55,0.35)] border border-[color:var(--card-border)] h-[85vh] min-h-[600px] relative overflow-hidden">
-                                <ChinaMap
-                                    data={(provincesQuery.data || []).map((p) => ({
-                                        province: p.province,
-                                        visitCount: p.visitCount,
-                                        photoCount: p.photoCount,
-                                        visitedCities: p.visitedCities,
-                                        lastVisited: p.lastVisited,
-                                    }))}
-                                    onProvinceSelect={handleProvinceSelect}
-                                />
-                                {(provincesQuery.data || []).length === 0 && (
-                                    <div className="absolute bottom-10 left-0 right-0 text-center text-[color:var(--ink-soft)]">
-                                        还没有足迹，点右上角添加第一条旅行记录。
-                                    </div>
-                                )}
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {viewLevel === 'province' && selectedProvince && (
-                        <motion.div
-                            key="province"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 1.05 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <div className="bg-[color:var(--paper-soft)] rounded-2xl shadow-[0_30px_60px_-45px_rgba(31,41,55,0.35)] border border-[color:var(--card-border)] h-[82vh] min-h-[600px] overflow-hidden">
-                                <ProvinceMap
-                                    provinceName={selectedProvince}
-                                    data={provinceCitiesQuery.data || []}
-                                    onCitySelect={handleCitySelect}
-                                    onBack={handleBackToNational}
-                                />
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {viewLevel === 'city' && selectedCity && (
-                        <motion.div
-                            key="city"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <CityDetail
-                                provinceName={selectedProvince!}
-                                cityName={selectedCity}
-                                data={cityDetailQuery.data ?? undefined}
-                                onBack={handleBack}
-                            />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            <AnimatePresence>
-                {showAdd && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-                    >
-                        <div className="w-full max-w-lg rounded-2xl bg-[color:var(--paper-soft)] shadow-[0_30px_60px_-45px_rgba(31,41,55,0.4)] border border-[color:var(--card-border)] p-6 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-[color:var(--ink)]">添加足迹</h3>
-                                <button
-                                    className="text-[color:var(--ink-soft)] hover:text-[color:var(--ink)]"
-                                    onClick={() => setShowAdd(false)}
-                                >
-                                    ×
-                                </button>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <label className="text-sm text-[color:var(--ink-muted)] space-y-1 relative">
-                                    <span>省份</span>
-                                    <input
-                                        className="w-full rounded border border-[color:var(--card-border)] bg-[color:var(--paper)] px-2 py-1 text-[color:var(--ink)] focus:border-[color:var(--accent)]/60 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/10"
-                                        value={draft.province}
-                                        onFocus={() => setShowProvinceDropdown(true)}
-                                        onBlur={() => setTimeout(() => setShowProvinceDropdown(false), 150)}
-                                        onChange={(e) => {
-                                            setDraft({ ...draft, province: e.target.value, city: '' })
-                                            setShowProvinceDropdown(true)
-                                        }}
-                                        onKeyDown={(e) => {
-                                            if (!showProvinceDropdown) return
-                                            if (e.key === 'ArrowDown') {
-                                                e.preventDefault()
-                                                setProvinceActiveIndex((prev) =>
-                                                    Math.min(prev + 1, Math.max(filteredProvinces.length - 1, 0))
-                                                )
-                                            }
-                                            if (e.key === 'ArrowUp') {
-                                                e.preventDefault()
-                                                setProvinceActiveIndex((prev) => Math.max(prev - 1, 0))
-                                            }
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault()
-                                                const p = filteredProvinces[provinceActiveIndex]
-                                                if (p) {
-                                                    setDraft({ ...draft, province: p, city: '' })
-                                                    setShowProvinceDropdown(false)
-                                                }
-                                            }
-                                            if (e.key === 'Escape') {
-                                                setShowProvinceDropdown(false)
-                                            }
-                                        }}
-                                        placeholder="如：广东"
-                                    />
-                                    {showProvinceDropdown && provinceOptions.length > 0 && (
-                                        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-scroll rounded-md border border-[color:var(--card-border)] bg-[color:var(--paper)] shadow-md">
-                                            {filteredProvinces.map((p, idx) => (
-                                                <button
-                                                    type="button"
-                                                    key={p}
-                                                    className={`w-full text-left px-3 py-2 text-sm text-[color:var(--ink-muted)] ${
-                                                        idx === provinceActiveIndex
-                                                            ? 'bg-[color:var(--paper-strong)] text-[color:var(--ink)]'
-                                                            : 'hover:bg-[color:var(--paper-strong)]'
-                                                    }`}
-                                                    onMouseDown={(e) => e.preventDefault()}
-                                                    onMouseEnter={() => setProvinceActiveIndex(idx)}
-                                                    onClick={() => {
-                                                        setDraft({ ...draft, province: p, city: '' })
-                                                        setShowProvinceDropdown(false)
-                                                    }}
-                                                >
-                                                    {p}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </label>
-                                <label className="text-sm text-[color:var(--ink-muted)] space-y-1 relative">
-                                    <span>城市</span>
-                                    <input
-                                        className="w-full rounded border border-[color:var(--card-border)] bg-[color:var(--paper)] px-2 py-1 text-[color:var(--ink)] focus:border-[color:var(--accent)]/60 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/10 disabled:text-[color:var(--ink-soft)]"
-                                        value={draft.city}
-                                        onFocus={() => draft.province && setShowCityDropdown(true)}
-                                        onBlur={() => setTimeout(() => setShowCityDropdown(false), 150)}
-                                        onChange={(e) => {
-                                            setDraft({ ...draft, city: e.target.value })
-                                            if (draft.province) setShowCityDropdown(true)
-                                        }}
-                                        onKeyDown={(e) => {
-                                            if (!showCityDropdown) return
-                                            if (e.key === 'ArrowDown') {
-                                                e.preventDefault()
-                                                setCityActiveIndex((prev) =>
-                                                    Math.min(prev + 1, Math.max(filteredCities.length - 1, 0))
-                                                )
-                                            }
-                                            if (e.key === 'ArrowUp') {
-                                                e.preventDefault()
-                                                setCityActiveIndex((prev) => Math.max(prev - 1, 0))
-                                            }
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault()
-                                                const c = filteredCities[cityActiveIndex]
-                                                if (c) {
-                                                    setDraft({ ...draft, city: c })
-                                                    setShowCityDropdown(false)
-                                                }
-                                            }
-                                            if (e.key === 'Escape') {
-                                                setShowCityDropdown(false)
-                                            }
-                                        }}
-                                        placeholder="如：深圳"
-                                        disabled={!draft.province}
-                                    />
-                                    {showCityDropdown && draft.province && filteredCities.length > 0 && (
-                                        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-scroll rounded-md border border-[color:var(--card-border)] bg-[color:var(--paper)] shadow-md">
-                                            {filteredCities.map((c, idx) => (
-                                                <button
-                                                    type="button"
-                                                    key={c}
-                                                    className={`w-full text-left px-3 py-2 text-sm text-[color:var(--ink-muted)] ${
-                                                        idx === cityActiveIndex
-                                                            ? 'bg-[color:var(--paper-strong)] text-[color:var(--ink)]'
-                                                            : 'hover:bg-[color:var(--paper-strong)]'
-                                                    }`}
-                                                    onMouseDown={(e) => e.preventDefault()}
-                                                    onMouseEnter={() => setCityActiveIndex(idx)}
-                                                    onClick={() => {
-                                                        setDraft({ ...draft, city: c })
-                                                        setShowCityDropdown(false)
-                                                    }}
-                                                >
-                                                    {c}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </label>
-                                <label className="text-sm text-[color:var(--ink-muted)] space-y-1">
-                                    <span>到访次数</span>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        className="w-full rounded border border-[color:var(--card-border)] bg-[color:var(--paper)] px-2 py-1 text-[color:var(--ink)] focus:border-[color:var(--accent)]/60 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/10"
-                                        value={draft.visitCount}
-                                        onChange={(e) => setDraft({ ...draft, visitCount: Number(e.target.value) || 1 })}
-                                    />
-                                </label>
-                                <label className="text-sm text-[color:var(--ink-muted)] space-y-1">
-                                    <span>标签（逗号分隔）</span>
-                                    <input
-                                        className="w-full rounded border border-[color:var(--card-border)] bg-[color:var(--paper)] px-2 py-1 text-[color:var(--ink)] focus:border-[color:var(--accent)]/60 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/10"
-                                        value={draft.tags}
-                                        onChange={(e) => setDraft({ ...draft, tags: e.target.value })}
-                                        placeholder="海边,美食"
-                                    />
-                                </label>
-                                <label className="col-span-2 text-sm text-[color:var(--ink-muted)] space-y-1">
-                                    <span>首张照片链接（可选）</span>
-                                    <input
-                                        className="w-full rounded border border-[color:var(--card-border)] bg-[color:var(--paper)] px-2 py-1 text-[color:var(--ink)] focus:border-[color:var(--accent)]/60 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/10"
-                                        value={draft.photoUrl}
-                                        onChange={(e) => setDraft({ ...draft, photoUrl: e.target.value })}
-                                        placeholder="https://..."
-                                    />
-                                </label>
-                                <label className="col-span-2 text-sm text-[color:var(--ink-muted)] space-y-1">
-                                    <span>或上传首张照片（可选）</span>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        className="w-full rounded border border-[color:var(--card-border)] bg-[color:var(--paper)] px-2 py-1 text-[color:var(--ink)]"
-                                        onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
-                                    />
-                                    {photoFile && <div className="text-xs text-[color:var(--ink-soft)]">已选择：{photoFile.name}</div>}
-                                </label>
-                            </div>
-                            {errorMsg && <div className="text-sm text-red-600">{errorMsg}</div>}
-                            <div className="flex items-center justify-end gap-2">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => setShowAdd(false)}
-                                    className="text-[color:var(--ink-muted)] hover:text-[color:var(--ink)]"
-                                >
-                                    取消
-                                </Button>
-                                <Button
-                                    className="bg-[color:var(--accent)] hover:bg-[#92400e] text-white"
-                                    onClick={() => {
-                                        setErrorMsg(null)
-                                        if (!ensureAuth()) return
-                                        createMutation.mutate()
-                                    }}
-                                    disabled={!draft.province || !draft.city || createMutation.isPending}
-                                >
-                                    {createMutation.isPending ? '保存中...' : '保存'}
-                                </Button>
+            <div className="container mx-auto space-y-5 px-4">
+                <header className="relative overflow-hidden rounded-[32px] border border-[color:var(--card-border)] bg-[color:var(--paper-soft)]/95 p-6 shadow-[0_30px_72px_-50px_rgba(15,23,42,0.45)] backdrop-blur-sm lg:p-8">
+                    <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(37,99,235,0.28)_0%,rgba(37,99,235,0)_72%)]" />
+                    <div className="relative grid gap-6 lg:grid-cols-[1.45fr_1fr] lg:items-end">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.26em] text-[color:var(--accent)]">Travel Chronicle</p>
+                            <h1 className="mt-3 text-3xl leading-tight font-display sm:text-4xl">旅行编年馆</h1>
+                            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[color:var(--ink-muted)] sm:text-base">
+                                用旅程章节记录真实发生的片段，把零散足迹整理成可回看的故事。未来计划只对自己可见，回忆对访客开放。
+                            </p>
+                            <div className="mt-5 flex flex-wrap items-center gap-2.5 text-xs sm:text-sm">
+                                <span className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-[color:var(--card-border)] bg-white/70 px-4 py-2 font-medium">
+                                    <Sparkles className="h-4 w-4 text-[color:var(--accent)]" />
+                                    记录已发生的旅程
+                                </span>
+                                <span className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-[color:var(--card-border)] bg-white/70 px-4 py-2 font-medium">
+                                    <Clock3 className="h-4 w-4 text-[color:var(--accent)]" />
+                                    规划下一段目的地
+                                </span>
                             </div>
                         </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
+                            <div className="rounded-2xl border border-slate-900/85 bg-slate-950 p-3 text-white">
+                                <div className="text-xl font-semibold leading-none">{overview.journeys}</div>
+                                <div className="mt-1 text-xs text-slate-300">旅程章节</div>
+                            </div>
+                            <div className="rounded-2xl border border-[color:var(--card-border)] bg-white/85 p-3">
+                                <div className="text-xl font-semibold leading-none">{overview.photos}</div>
+                                <div className="mt-1 text-xs text-[color:var(--ink-soft)]">照片总数</div>
+                            </div>
+                            <div className="rounded-2xl border border-[color:var(--card-border)] bg-white/85 p-3">
+                                <div className="text-xl font-semibold leading-none">{overview.cities}</div>
+                                <div className="mt-1 text-xs text-[color:var(--ink-soft)]">到访城市</div>
+                            </div>
+                            <div className="rounded-2xl border border-[color:var(--card-border)] bg-white/85 p-3">
+                                <div className="text-xl font-semibold leading-none">{overview.years}</div>
+                                <div className="mt-1 text-xs text-[color:var(--ink-soft)]">覆盖年份</div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <section className="grid gap-5 lg:grid-cols-[minmax(0,1.38fr)_minmax(320px,1fr)]">
+                    <div className="space-y-4">
+                        <div className="rounded-3xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)]/96 p-4 shadow-[0_24px_56px_-46px_rgba(15,23,42,0.45)] lg:p-5">
+                            <div className="mb-3 inline-flex min-h-10 items-center gap-2 rounded-full bg-[color:var(--paper)] px-3 py-1.5 text-xs text-[color:var(--ink-soft)]">
+                                <Filter className="h-3.5 w-3.5" />
+                                时间线筛选
+                            </div>
+
+                            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-[170px_1fr_1fr_auto]">
+                                <select
+                                    aria-label="按年份筛选旅程"
+                                    value={year}
+                                    onChange={(event) => setYear(event.target.value)}
+                                    className="min-h-11 rounded-xl border border-[color:var(--card-border)] bg-white px-3 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                                >
+                                    <option value="">全部年份</option>
+                                    {(yearsQuery.data || []).map((item) => (
+                                        <option key={item} value={item}>
+                                            {item}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <label className="relative">
+                                    <Search className="pointer-events-none absolute left-2.5 top-3 h-4 w-4 text-[color:var(--ink-soft)]" />
+                                    <input
+                                        aria-label="按关键词筛选旅程"
+                                        value={keyword}
+                                        onChange={(event) => setKeyword(event.target.value)}
+                                        placeholder="关键词"
+                                        className="min-h-11 w-full rounded-xl border border-[color:var(--card-border)] bg-white py-2 pl-8 pr-3 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                                    />
+                                </label>
+
+                                <label className="relative">
+                                    <Tag className="pointer-events-none absolute left-2.5 top-3 h-4 w-4 text-[color:var(--ink-soft)]" />
+                                    <input
+                                        aria-label="按标签筛选旅程"
+                                        value={tag}
+                                        onChange={(event) => setTag(event.target.value)}
+                                        placeholder="标签"
+                                        className="min-h-11 w-full rounded-xl border border-[color:var(--card-border)] bg-white py-2 pl-8 pr-3 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                                    />
+                                </label>
+
+                                <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[color:var(--card-border)] bg-white px-3 py-2 text-sm text-[color:var(--ink-muted)]">
+                                    <input
+                                        type="checkbox"
+                                        checked={onlyWithPhotos}
+                                        onChange={(event) => setOnlyWithPhotos(event.target.checked)}
+                                    />
+                                    仅含照片
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="rounded-3xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)]/96 p-4 shadow-[0_24px_56px_-46px_rgba(15,23,42,0.45)] lg:p-5">
+                            <div className="mb-4 flex items-center justify-between gap-3">
+                                <div>
+                                    <h2 className="text-lg font-display">旅程时间线</h2>
+                                    <p className="text-xs text-[color:var(--ink-soft)]">按年份倒序查看章节，点击卡片展开详细记录。</p>
+                                </div>
+                                <div className="rounded-full bg-[color:var(--paper)] px-3 py-1 text-xs text-[color:var(--ink-soft)]">
+                                    共 {timelineData.length} 条
+                                </div>
+                            </div>
+
+                            {journeysQuery.isLoading && (
+                                <div className="space-y-3" aria-hidden>
+                                    {[0, 1, 2].map((item) => (
+                                        <div key={item} className="animate-pulse rounded-2xl border border-[color:var(--card-border)] bg-white p-4">
+                                            <div className="h-4 w-36 rounded bg-slate-200" />
+                                            <div className="mt-3 h-3 w-2/3 rounded bg-slate-200" />
+                                            <div className="mt-2 h-3 w-1/2 rounded bg-slate-200" />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {!journeysQuery.isLoading && groupedTimeline.length > 0 && (
+                                <div className="space-y-5">
+                                    {groupedTimeline.map((group) => (
+                                        <section key={group.year}>
+                                            <div className="mb-3 inline-flex min-h-8 items-center rounded-full border border-[color:var(--card-border)] bg-white px-3 py-1 text-xs font-medium text-[color:var(--ink-muted)]">
+                                                {group.year} 年
+                                            </div>
+
+                                            <div className="space-y-3 border-l border-dashed border-slate-300/90 pl-4">
+                                                {group.items.map((journey) => {
+                                                    const active = selectedJourneyId === journey.id
+                                                    return (
+                                                        <button
+                                                            key={journey.id}
+                                                            type="button"
+                                                            onClick={() => setSelectedJourneyId(journey.id)}
+                                                            className={`group relative w-full cursor-pointer overflow-hidden rounded-2xl border text-left transition duration-200 focus:outline-none focus:ring-2 focus:ring-sky-300 ${
+                                                                active
+                                                                    ? 'border-sky-300 bg-sky-50 shadow-[0_18px_38px_-28px_rgba(14,165,233,0.55)]'
+                                                                    : 'border-[color:var(--card-border)] bg-white hover:-translate-y-0.5 hover:shadow-[0_16px_34px_-28px_rgba(15,23,42,0.45)]'
+                                                            }`}
+                                                        >
+                                                            <span
+                                                                className={`absolute -left-[1.42rem] top-6 h-3.5 w-3.5 rounded-full border-2 ${
+                                                                    active ? 'border-sky-500 bg-sky-300' : 'border-slate-300 bg-white'
+                                                                }`}
+                                                            />
+
+                                                            <div className="grid gap-3 p-4 sm:grid-cols-[148px_1fr]">
+                                                                <div
+                                                                    className="h-24 rounded-xl bg-cover bg-center"
+                                                                    style={{
+                                                                        backgroundImage: journey.coverUrl
+                                                                            ? `url(${toMediaUrl(journey.coverUrl)})`
+                                                                            : 'linear-gradient(135deg,#0f172a,#1d4ed8,#0ea5e9)',
+                                                                    }}
+                                                                />
+
+                                                                <div className="space-y-2">
+                                                                    <div className="flex items-start justify-between gap-3">
+                                                                        <div className="text-base leading-tight font-semibold text-[color:var(--ink)]">{journey.title}</div>
+                                                                        <span className="inline-flex min-h-7 items-center rounded-full bg-slate-900 px-2.5 py-0.5 text-[11px] text-white">
+                                                                            {journey.photoCount} 张
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className="flex flex-wrap items-center gap-3 text-xs text-[color:var(--ink-soft)]">
+                                                                        <span className="inline-flex items-center gap-1">
+                                                                            <Calendar className="h-3.5 w-3.5" />
+                                                                            {formatPeriod(journey.startDate, journey.endDate)}
+                                                                        </span>
+                                                                        <span className="inline-flex items-center gap-1">
+                                                                            <MapPin className="h-3.5 w-3.5" />
+                                                                            {(journey.cities || []).join(' · ') || '城市待补充'}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <p className="line-clamp-2 text-sm text-[color:var(--ink-muted)]">{journey.summary || '暂无摘要，等待补充旅程故事。'}</p>
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        </section>
+                                    ))}
+                                </div>
+                            )}
+
+                            {!journeysQuery.isLoading && groupedTimeline.length === 0 && (
+                                <div className="rounded-2xl border border-dashed border-[color:var(--card-border)] bg-white/70 p-8 text-center">
+                                    <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+                                        <Camera className="h-5 w-5" />
+                                    </div>
+                                    <p className="text-sm text-[color:var(--ink-muted)]">还没有可展示的旅程章节，先创建你的第一条旅行记录。</p>
+                                    <div className="mt-4">
+                                        <Link to={token ? '/admin/footprints' : '/admin/login'}>
+                                            <Button className="min-h-11 rounded-xl bg-[color:var(--ink)] px-4 text-white hover:bg-black">
+                                                {token ? '去后台创建旅程' : '登录后开始记录'}
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <aside className="space-y-4">
+                        <AnimatePresence mode="wait">
+                            {selectedJourneyId && selectedJourneyQuery.isLoading && !activeJourney ? (
+                                <motion.div
+                                    key="detail-loading"
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -8 }}
+                                    transition={{ duration: 0.18 }}
+                                    className="overflow-hidden rounded-3xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-5"
+                                >
+                                    <div className="h-40 animate-pulse rounded-2xl bg-slate-200" />
+                                    <div className="mt-4 h-6 w-1/2 animate-pulse rounded bg-slate-200" />
+                                    <div className="mt-2 h-4 w-2/3 animate-pulse rounded bg-slate-200" />
+                                    <div className="mt-4 space-y-2">
+                                        <div className="h-3 w-full animate-pulse rounded bg-slate-200" />
+                                        <div className="h-3 w-4/5 animate-pulse rounded bg-slate-200" />
+                                    </div>
+                                </motion.div>
+                            ) : activeJourney ? (
+                                <motion.div
+                                    key={activeJourney.id}
+                                    initial={{ opacity: 0, x: 16 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -16 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="overflow-hidden rounded-3xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] shadow-[0_28px_64px_-48px_rgba(15,23,42,0.5)]"
+                                >
+                                    <div className="relative h-52">
+                                        <div
+                                            className="absolute inset-0 bg-cover bg-center"
+                                            style={{
+                                                backgroundImage: activeJourney.coverUrl
+                                                    ? `url(${toMediaUrl(activeJourney.coverUrl)})`
+                                                    : 'linear-gradient(120deg,#0f172a,#1d4ed8,#0ea5e9)',
+                                            }}
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                                        <div className="absolute inset-x-0 bottom-0 p-5 text-white">
+                                            <p className="text-[11px] uppercase tracking-[0.24em] text-white/75">Journey Chapter</p>
+                                            <h2 className="mt-1 text-2xl leading-tight font-display">{activeJourney.title}</h2>
+                                            <p className="mt-1 text-sm text-white/90">{formatPeriod(activeJourney.startDate, activeJourney.endDate)}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4 p-5">
+                                        <div className="rounded-2xl border border-[color:var(--card-border)] bg-white/70 p-4 text-sm leading-relaxed text-[color:var(--ink-muted)]">
+                                            {activeJourney.content || activeJourney.summary || '这个章节还没有正文。'}
+                                        </div>
+
+                                        <div className="grid gap-2 sm:grid-cols-3">
+                                            <div className="rounded-2xl border border-[color:var(--card-border)] bg-white p-3">
+                                                <div className="inline-flex items-center gap-1 text-xs text-[color:var(--ink-soft)]">
+                                                    <Camera className="h-3.5 w-3.5" />
+                                                    照片数量
+                                                </div>
+                                                <div className="mt-1 text-base font-semibold">{activeJourney.photoCount || 0}</div>
+                                            </div>
+                                            <div className="rounded-2xl border border-[color:var(--card-border)] bg-white p-3">
+                                                <div className="inline-flex items-center gap-1 text-xs text-[color:var(--ink-soft)]">
+                                                    <Users className="h-3.5 w-3.5" />
+                                                    同行人
+                                                </div>
+                                                <div className="mt-1 line-clamp-1 text-sm font-medium text-[color:var(--ink)]">
+                                                    {activeJourney.companions || '未记录'}
+                                                </div>
+                                            </div>
+                                            <div className="rounded-2xl border border-[color:var(--card-border)] bg-white p-3">
+                                                <div className="inline-flex items-center gap-1 text-xs text-[color:var(--ink-soft)]">
+                                                    <Wallet className="h-3.5 w-3.5" />
+                                                    花费区间
+                                                </div>
+                                                <div className="mt-1 text-sm font-medium text-[color:var(--ink)]">
+                                                    {formatBudget(activeJourney.budgetMin, activeJourney.budgetMax)}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {parseTags(activeJourney.tags).length > 0 && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {parseTags(activeJourney.tags).map((value) => (
+                                                    <span key={value} className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs text-sky-700">
+                                                        {value}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-2">
+                                            <button
+                                                type="button"
+                                                aria-expanded={showLocationOverview}
+                                                onClick={() => setShowLocationOverview((prev) => !prev)}
+                                                className="inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-xl px-2 text-sm text-[color:var(--accent)] transition hover:bg-sky-50"
+                                            >
+                                                <Compass className="h-4 w-4" />
+                                                位置概览（可选）
+                                                <ChevronRight className={`h-4 w-4 transition ${showLocationOverview ? 'rotate-90' : ''}`} />
+                                            </button>
+
+                                            {showLocationOverview && (
+                                                <div className="rounded-2xl border border-[color:var(--card-border)] bg-white p-3 text-sm text-[color:var(--ink-muted)]">
+                                                    {(activeJourney.locations || []).length ? (
+                                                        (activeJourney.locations || []).map((location) => (
+                                                            <div key={location.id} className="flex items-center justify-between gap-3 py-1.5">
+                                                                <span className="line-clamp-1">
+                                                                    {location.province} · {location.city}
+                                                                </span>
+                                                                <span className="shrink-0 text-xs text-[color:var(--ink-soft)]">{location.photoCount || 0} 张</span>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <div className="text-[color:var(--ink-soft)]">暂无关联地点</div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {(activeJourney.photos || []).length > 0 && (
+                                            <div className="space-y-2">
+                                                <div className="text-xs uppercase tracking-[0.2em] text-[color:var(--ink-soft)]">照片墙</div>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {activeJourney.photos.slice(0, 9).map((photo, index) => (
+                                                        <div
+                                                            key={`${photo.id || index}-${photo.url}`}
+                                                            className="group overflow-hidden rounded-xl border border-[color:var(--card-border)]"
+                                                        >
+                                                            <img
+                                                                src={toMediaUrl(photo.url)}
+                                                                alt={photo.note || `photo-${index}`}
+                                                                className="h-20 w-full object-cover transition duration-300 group-hover:scale-105"
+                                                                loading="lazy"
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            ) : (
+                                <motion.div
+                                    key="empty"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="rounded-3xl border border-dashed border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-6 text-sm text-[color:var(--ink-soft)]"
+                                >
+                                    选择左侧旅程章节查看详情。
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {token ? (
+                            <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 p-5 text-slate-100 shadow-[0_24px_60px_-46px_rgba(15,23,42,0.75)]">
+                                <div className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-[radial-gradient(circle,rgba(14,165,233,0.33)_0%,rgba(14,165,233,0)_70%)]" />
+                                <div className="relative">
+                                    <div className="mb-3 flex items-center justify-between">
+                                        <h3 className="text-sm uppercase tracking-[0.2em] text-slate-400">未来计划</h3>
+                                        <Clock3 className="h-4 w-4 text-slate-400" />
+                                    </div>
+
+                                    <div className="space-y-2.5">
+                                        {planPreview.map((plan) => (
+                                            <div key={plan.id} className="rounded-2xl border border-slate-700/90 bg-slate-900/85 p-3 text-sm">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="font-medium text-slate-100">{plan.title}</div>
+                                                    <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClassMap[plan.status]}`}>
+                                                        {statusLabelMap[plan.status]}
+                                                    </span>
+                                                </div>
+                                                <div className="mt-1 text-xs text-slate-400">
+                                                    {plan.province} · {plan.city} · {formatPeriod(plan.startDate, plan.endDate)}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {plansQuery.data?.length === 0 && (
+                                            <div className="rounded-2xl border border-dashed border-slate-700 p-3 text-xs text-slate-400">
+                                                还没有未来计划，先添加一个想去的目的地。
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <Link
+                                        to="/admin/footprints"
+                                        className="mt-4 inline-flex min-h-11 cursor-pointer items-center gap-1 text-sm text-sky-300 transition hover:text-sky-200"
+                                    >
+                                        管理计划与旅程
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Link>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="rounded-3xl border border-[color:var(--card-border)] bg-white/85 p-5 text-sm text-[color:var(--ink-soft)]">
+                                未来计划仅自己可见。登录后可创建计划、设置预算，并在完成后归档到旅程章节。
+                                <div className="mt-3">
+                                    <Link to="/admin/login">
+                                        <Button size="sm" className="min-h-11 rounded-xl bg-[color:var(--ink)] px-4 text-white hover:bg-black">
+                                            去登录
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </div>
+                        )}
+                    </aside>
+                </section>
+            </div>
         </div>
     )
 }
-

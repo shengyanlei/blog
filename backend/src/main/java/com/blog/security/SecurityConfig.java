@@ -70,6 +70,11 @@ public class SecurityConfig {
                 .antMatchers(HttpMethod.GET, "/api/articles/*/comments").permitAll()
                 .antMatchers(HttpMethod.POST, "/api/articles/*/comments").permitAll()
                 .antMatchers("/uploads/**").permitAll()
+                // Journeys: GET public, other operations require login
+                .antMatchers(HttpMethod.GET, "/api/journeys/**").permitAll()
+                .antMatchers("/api/journeys/**").authenticated()
+                // Travel plans are private
+                .antMatchers("/api/travel-plans/**").authenticated()
                 // Footprints: GET public, other operations require login
                 .antMatchers(HttpMethod.GET, "/api/footprints/**").permitAll()
                 .antMatchers("/api/footprints/**").authenticated()

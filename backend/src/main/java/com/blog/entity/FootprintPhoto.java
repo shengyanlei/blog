@@ -2,6 +2,7 @@ package com.blog.entity;
 
 import javax.persistence.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "footprint_photo", indexes = {
@@ -29,6 +30,15 @@ public class FootprintPhoto {
     private String tags;
 
     private Boolean cover = false;
+
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 
     public Long getId() {
         return id;
@@ -92,5 +102,13 @@ public class FootprintPhoto {
 
     public void setCover(Boolean cover) {
         this.cover = cover;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }
