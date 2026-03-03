@@ -1,0 +1,113 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RELEASE_SHA: ${{ github.sha }}
+      RELEASE_ARCHIVE: release-${{ github.sha }}.tgz
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm --filter blog-spa build
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+          cache: maven
+
+      - name: Build backend
+        run: mvn -f backend/pom.xml -B clean package -DskipTests
+
+      - name: Build release archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          JAR_PATH="$(find backend/target -maxdepth 1 -type f -name 'blog-backend-*.jar' ! -name '*.jar.original' | head -n 1)"
+          if [[ -z "${JAR_PATH}" ]]; then
+            echo "No backend jar artifact found under backend/target."
+            exit 1
+          fi
+
+          rm -rf release
+          mkdir -p release/frontend release/backend
+
+          cp -r apps/spa/dist release/frontend/dist
+          cp "${JAR_PATH}" release/backend/blog-backend.jar
+          printf "%s\n" "${RELEASE_SHA}" > release/VERSION
+
+          tar -czf "${RELEASE_ARCHIVE}" -C release .
+          ls -lh "${RELEASE_ARCHIVE}"
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ALIYUN_SSH_KEY }}
+
+      - name: Add server host key
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT="${{ secrets.ALIYUN_PORT }}"
+          if [[ -z "${PORT}" ]]; then
+            PORT="22"
+          fi
+
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${PORT}" "${{ secrets.ALIYUN_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload release and deploy scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT="${{ secrets.ALIYUN_PORT }}"
+          if [[ -z "${PORT}" ]]; then
+            PORT="22"
+          fi
+
+          REMOTE="${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}"
+
+          ssh -p "${PORT}" "${REMOTE}" "mkdir -p /opt/blog/incoming /opt/blog/bin"
+          scp -P "${PORT}" "${RELEASE_ARCHIVE}" "${REMOTE}:/opt/blog/incoming/${RELEASE_ARCHIVE}"
+          scp -P "${PORT}" deploy/server/deploy_release.sh deploy/server/rollback_release.sh "${REMOTE}:/opt/blog/bin/"
+
+      - name: Run production deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT="${{ secrets.ALIYUN_PORT }}"
+          if [[ -z "${PORT}" ]]; then
+            PORT="22"
+          fi
+
+          REMOTE="${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}"
+          ssh -p "${PORT}" "${REMOTE}" "chmod +x /opt/blog/bin/deploy_release.sh /opt/blog/bin/rollback_release.sh && /opt/blog/bin/deploy_release.sh '${RELEASE_SHA}'"
