@@ -1,4 +1,4 @@
--- Account permission + article cover material schema migration (MySQL 8+)
+-- Account permission + article cover material schema migration (MySQL 5.7+)
 -- Safe to run repeatedly.
 
 START TRANSACTION;
@@ -6,8 +6,21 @@ START TRANSACTION;
 ALTER TABLE users
     MODIFY COLUMN role VARCHAR(20) NOT NULL;
 
-ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS enabled TINYINT(1) NOT NULL DEFAULT 1;
+SET @has_users_enabled_col := (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'users'
+      AND COLUMN_NAME = 'enabled'
+);
+SET @sql_users_enabled_col := IF(
+    @has_users_enabled_col = 0,
+    'ALTER TABLE users ADD COLUMN enabled TINYINT(1) NOT NULL DEFAULT 1',
+    'SELECT 1'
+);
+PREPARE stmt_users_enabled_col FROM @sql_users_enabled_col;
+EXECUTE stmt_users_enabled_col;
+DEALLOCATE PREPARE stmt_users_enabled_col;
 
 UPDATE users
 SET role = CASE
@@ -30,8 +43,21 @@ CREATE TABLE IF NOT EXISTS user_tab_permission (
     CONSTRAINT fk_user_tab_permission_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
-ALTER TABLE articles
-    ADD COLUMN IF NOT EXISTS cover_photo_id BIGINT NULL;
+SET @has_articles_cover_col := (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'articles'
+      AND COLUMN_NAME = 'cover_photo_id'
+);
+SET @sql_articles_cover_col := IF(
+    @has_articles_cover_col = 0,
+    'ALTER TABLE articles ADD COLUMN cover_photo_id BIGINT NULL',
+    'SELECT 1'
+);
+PREPARE stmt_articles_cover_col FROM @sql_articles_cover_col;
+EXECUTE stmt_articles_cover_col;
+DEALLOCATE PREPARE stmt_articles_cover_col;
 
 SET @has_cover_idx := (
     SELECT COUNT(*)
@@ -65,8 +91,21 @@ PREPARE stmt_cover_fk FROM @sql_cover_fk;
 EXECUTE stmt_cover_fk;
 DEALLOCATE PREPARE stmt_cover_fk;
 
-ALTER TABLE footprint_photo
-    ADD COLUMN IF NOT EXISTS source_type VARCHAR(30) NOT NULL DEFAULT 'PHOTO_WALL';
+SET @has_fp_source_col := (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'footprint_photo'
+      AND COLUMN_NAME = 'source_type'
+);
+SET @sql_fp_source_col := IF(
+    @has_fp_source_col = 0,
+    'ALTER TABLE footprint_photo ADD COLUMN source_type VARCHAR(30) NOT NULL DEFAULT ''PHOTO_WALL''',
+    'SELECT 1'
+);
+PREPARE stmt_fp_source_col FROM @sql_fp_source_col;
+EXECUTE stmt_fp_source_col;
+DEALLOCATE PREPARE stmt_fp_source_col;
 
 UPDATE footprint_photo
 SET source_type = 'PHOTO_WALL'

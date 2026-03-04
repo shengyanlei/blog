@@ -1,15 +1,41 @@
 -- Pending asset support for journey asset pool.
--- Safe to run on MySQL 8+.
+-- Compatible with MySQL 5.7+ (avoid ADD COLUMN IF NOT EXISTS).
 
-ALTER TABLE footprint_photo
-    ADD COLUMN IF NOT EXISTS created_at DATETIME NULL;
+SET @has_created_at_col := (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'footprint_photo'
+      AND COLUMN_NAME = 'created_at'
+);
+SET @sql := IF(
+    @has_created_at_col = 0,
+    'ALTER TABLE footprint_photo ADD COLUMN created_at DATETIME NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 UPDATE footprint_photo
 SET created_at = NOW()
 WHERE created_at IS NULL;
 
-ALTER TABLE footprint_photo
-    MODIFY COLUMN created_at DATETIME NOT NULL;
+SET @created_at_nullable := (
+    SELECT IFNULL(MAX(CASE WHEN IS_NULLABLE = 'YES' THEN 1 ELSE 0 END), 0)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'footprint_photo'
+      AND COLUMN_NAME = 'created_at'
+);
+SET @sql := IF(
+    @created_at_nullable = 1,
+    'ALTER TABLE footprint_photo MODIFY COLUMN created_at DATETIME NOT NULL',
+    'SELECT 1'
+);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 SET @has_idx := (
     SELECT COUNT(*)
