@@ -103,6 +103,10 @@ jobs:
 
       - name: Run production deployment
         shell: bash
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
         run: |
           set -euo pipefail
           PORT="${{ secrets.ALIYUN_PORT }}"
@@ -110,5 +114,24 @@ jobs:
             PORT="22"
           fi
 
+          if [[ -z "${SPRING_DATASOURCE_URL}" ]]; then
+            echo "Missing required secret: SPRING_DATASOURCE_URL"
+            exit 1
+          fi
+          if [[ -z "${SPRING_DATASOURCE_USERNAME}" ]]; then
+            echo "Missing required secret: SPRING_DATASOURCE_USERNAME"
+            exit 1
+          fi
+
+          DB_URL_B64="$(printf '%s' "${SPRING_DATASOURCE_URL}" | base64 -w0)"
+          DB_USER_B64="$(printf '%s' "${SPRING_DATASOURCE_USERNAME}" | base64 -w0)"
+          DB_PASS_B64="$(printf '%s' "${SPRING_DATASOURCE_PASSWORD}" | base64 -w0)"
+
           REMOTE="${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}"
-          ssh -p "${PORT}" "${REMOTE}" "chmod +x /opt/blog/bin/deploy_release.sh /opt/blog/bin/rollback_release.sh && RUN_DB_MIGRATIONS=true /opt/blog/bin/deploy_release.sh '${RELEASE_SHA}'"
+          ssh -p "${PORT}" "${REMOTE}" "\
+            chmod +x /opt/blog/bin/deploy_release.sh /opt/blog/bin/rollback_release.sh && \
+            SPRING_DATASOURCE_URL=\$(printf '%s' '${DB_URL_B64}' | base64 -d) \
+            SPRING_DATASOURCE_USERNAME=\$(printf '%s' '${DB_USER_B64}' | base64 -d) \
+            SPRING_DATASOURCE_PASSWORD=\$(printf '%s' '${DB_PASS_B64}' | base64 -d) \
+            RUN_DB_MIGRATIONS=true \
+            /opt/blog/bin/deploy_release.sh '${RELEASE_SHA}'"

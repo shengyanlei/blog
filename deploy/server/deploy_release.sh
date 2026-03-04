@@ -97,6 +97,9 @@ cleanup_old_releases() {
 
 run_db_migrations() {
   local scripts_dir="$1"
+  local provided_jdbc_url="${SPRING_DATASOURCE_URL:-}"
+  local provided_db_user="${SPRING_DATASOURCE_USERNAME:-}"
+  local provided_db_pass="${SPRING_DATASOURCE_PASSWORD:-}"
   local jdbc_url=""
   local db_user=""
   local db_pass=""
@@ -118,9 +121,9 @@ run_db_migrations() {
     source "${BACKEND_ENV_FILE}"
   fi
 
-  jdbc_url="${SPRING_DATASOURCE_URL:-}"
-  db_user="${SPRING_DATASOURCE_USERNAME:-}"
-  db_pass="${SPRING_DATASOURCE_PASSWORD:-}"
+  jdbc_url="${SPRING_DATASOURCE_URL:-$provided_jdbc_url}"
+  db_user="${SPRING_DATASOURCE_USERNAME:-$provided_db_user}"
+  db_pass="${SPRING_DATASOURCE_PASSWORD:-$provided_db_pass}"
 
   [[ -n "${jdbc_url}" ]] || fail "SPRING_DATASOURCE_URL is empty; cannot run DB migrations."
   [[ -n "${db_user}" ]] || fail "SPRING_DATASOURCE_USERNAME is empty; cannot run DB migrations."

@@ -162,6 +162,9 @@ sudo systemctl restart nginx
 - `ALIYUN_PORT`（建议 `22`）
 - `ALIYUN_USER`
 - `ALIYUN_SSH_KEY`（与服务器 `authorized_keys` 配对的私钥）
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
 
 ## 5. 自动发布流程
 
