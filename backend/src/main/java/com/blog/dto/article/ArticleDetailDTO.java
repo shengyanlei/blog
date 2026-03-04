@@ -22,6 +22,8 @@ public class ArticleDetailDTO {
     private String slug;
     private String content;
     private String summary;
+    private Long coverPhotoId;
+    private String coverImage;
     private String status;
     private Long views;
     private LocalDateTime publishedAt;

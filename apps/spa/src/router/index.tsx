@@ -16,8 +16,11 @@ import TagManagerPage from '../pages/admin/TagManagerPage'
 import CategoryManagerPage from '../pages/admin/CategoryManagerPage'
 import CommentManagerPage from '../pages/admin/CommentManagerPage'
 import FootprintManagerPage from '../pages/admin/FootprintManagerPage'
+import MaterialPoolPage from '../pages/admin/MaterialPoolPage'
+import CoverMaterialPoolPage from '../pages/admin/CoverMaterialPoolPage'
 import NotionOAuthCallbackPage from '../pages/admin/NotionOAuthCallbackPage'
 import SettingsPage from '../pages/admin/SettingsPage'
+import AccountManagerPage from '../pages/admin/AccountManagerPage'
 import PrototypeFootprintChroniclePage from '../pages/prototype/PrototypeFootprintChroniclePage'
 import PrototypeAdminFootprintChroniclePage from '../pages/prototype/PrototypeAdminFootprintChroniclePage'
 
@@ -59,7 +62,10 @@ export const router = createBrowserRouter([
                     { path: 'tags', element: <TagManagerPage /> },
                     { path: 'categories', element: <CategoryManagerPage /> },
                     { path: 'footprints', element: <FootprintManagerPage /> },
+                    { path: 'materials', element: <MaterialPoolPage /> },
+                    { path: 'cover-materials', element: <CoverMaterialPoolPage /> },
                     { path: 'settings', element: <SettingsPage /> },
+                    { path: 'accounts', element: <AccountManagerPage /> },
                 ],
             },
         ],

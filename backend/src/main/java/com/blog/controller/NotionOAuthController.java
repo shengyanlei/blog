@@ -26,7 +26,7 @@ public class NotionOAuthController {
     private final NotionOAuthService notionOAuthService;
 
     @GetMapping("/oauth/url")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public ResponseEntity<ApiResponse<NotionOAuthUrlResponse>> getAuthorizeUrl(
             @RequestParam(value = "owner", required = false) String owner) {
         NotionOAuthUrlResponse response = notionOAuthService.buildAuthorizeUrl(owner);
@@ -34,7 +34,7 @@ public class NotionOAuthController {
     }
 
     @PostMapping("/oauth/exchange")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public ResponseEntity<ApiResponse<NotionOAuthExchangeResponse>> exchange(
             @Valid @RequestBody NotionOAuthExchangeRequest request,
             Principal principal) {
@@ -44,14 +44,14 @@ public class NotionOAuthController {
     }
 
     @GetMapping("/connection")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public ResponseEntity<ApiResponse<NotionConnectionStatusResponse>> status(Principal principal) {
         NotionConnectionStatusResponse response = notionOAuthService.getConnectionStatus(principal.getName());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @DeleteMapping("/connection")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public ResponseEntity<ApiResponse<String>> disconnect(Principal principal) {
         notionOAuthService.disconnect(principal.getName());
         return ResponseEntity.ok(ApiResponse.success("ok"));

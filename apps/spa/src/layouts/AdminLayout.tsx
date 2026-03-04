@@ -1,27 +1,70 @@
 ﻿import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/useAuthStore'
-import { LayoutDashboard, FileText, Settings, Pencil, Tag, MessageSquare, Upload, MapPinned } from 'lucide-react'
+import {
+    LayoutDashboard,
+    FileText,
+    Settings,
+    Pencil,
+    Tag,
+    MessageSquare,
+    Upload,
+    MapPinned,
+    Image,
+    Users,
+} from 'lucide-react'
 import { paperThemeVars } from '../lib/theme'
+import {
+    ADMIN_TAB_CODES,
+    canAccessAdminPath,
+    firstAccessibleAdminPath,
+    resolveUserTabs,
+} from '../constants/adminTabs'
 
 export default function AdminLayout() {
-    const { token } = useAuthStore()
+    const { token, user } = useAuthStore()
     const location = useLocation()
 
     if (!token) {
         return <Navigate to="/admin/login" state={{ from: location }} replace />
     }
 
+    const tabCodes = resolveUserTabs(user)
+    const firstPath = firstAccessibleAdminPath(user)
+
+    if (!tabCodes.length) {
+        return (
+            <div
+                className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[color:var(--paper)] text-[color:var(--ink)] font-body"
+                style={paperThemeVars}
+            >
+                <h1 className="text-2xl font-display font-semibold">暂无可用后台菜单</h1>
+                <p className="text-sm text-[color:var(--ink-soft)]">请联系主人账号分配权限后再登录。</p>
+            </div>
+        )
+    }
+
+    if (location.pathname === '/admin' && firstPath) {
+        return <Navigate to={firstPath} replace />
+    }
+
+    if (!canAccessAdminPath(user, location.pathname)) {
+        return <Navigate to={firstPath || '/admin/login'} replace />
+    }
+
     const navItems = [
-        { to: '/admin/dashboard', label: '仪表盘', icon: LayoutDashboard },
-        { to: '/admin/articles', label: '文章管理', icon: FileText },
-        { to: '/admin/write', label: '写文章', icon: Pencil },
-        { to: '/admin/upload', label: '上传文章', icon: Upload },
-        { to: '/admin/comments', label: '评论管理', icon: MessageSquare },
-        { to: '/admin/tags', label: '标签管理', icon: Tag },
-        { to: '/admin/categories', label: '分类管理', icon: FileText },
-        { to: '/admin/footprints', label: '足迹管理', icon: MapPinned },
-        { to: '/admin/settings', label: '设置', icon: Settings },
-    ]
+        { tabCode: ADMIN_TAB_CODES.DASHBOARD, to: '/admin/dashboard', label: '仪表盘', icon: LayoutDashboard },
+        { tabCode: ADMIN_TAB_CODES.ARTICLES, to: '/admin/articles', label: '文章管理', icon: FileText },
+        { tabCode: ADMIN_TAB_CODES.WRITE, to: '/admin/write', label: '写文章', icon: Pencil },
+        { tabCode: ADMIN_TAB_CODES.UPLOAD, to: '/admin/upload', label: '上传文章', icon: Upload },
+        { tabCode: ADMIN_TAB_CODES.COMMENTS, to: '/admin/comments', label: '评论管理', icon: MessageSquare },
+        { tabCode: ADMIN_TAB_CODES.TAGS, to: '/admin/tags', label: '标签管理', icon: Tag },
+        { tabCode: ADMIN_TAB_CODES.CATEGORIES, to: '/admin/categories', label: '分类管理', icon: FileText },
+        { tabCode: ADMIN_TAB_CODES.FOOTPRINTS, to: '/admin/footprints', label: '足迹管理', icon: MapPinned },
+        { tabCode: ADMIN_TAB_CODES.MATERIALS, to: '/admin/materials', label: '照片墙', icon: Image },
+        { tabCode: ADMIN_TAB_CODES.COVER_MATERIALS, to: '/admin/cover-materials', label: '素材池', icon: Image },
+        { tabCode: ADMIN_TAB_CODES.SETTINGS, to: '/admin/settings', label: '设置', icon: Settings },
+        { tabCode: ADMIN_TAB_CODES.ACCOUNTS, to: '/admin/accounts', label: '账号管理', icon: Users },
+    ].filter((item) => tabCodes.includes(item.tabCode))
 
     return (
         <div

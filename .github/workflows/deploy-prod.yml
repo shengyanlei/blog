@@ -63,6 +63,7 @@ jobs:
 
           cp -r apps/spa/dist release/frontend/dist
           cp "${JAR_PATH}" release/backend/blog-backend.jar
+          cp -r backend/scripts release/backend/scripts
           printf "%s\n" "${RELEASE_SHA}" > release/VERSION
 
           tar -czf "${RELEASE_ARCHIVE}" -C release .
@@ -110,4 +111,4 @@ jobs:
           fi
 
           REMOTE="${{ secrets.ALIYUN_USER }}@${{ secrets.ALIYUN_HOST }}"
-          ssh -p "${PORT}" "${REMOTE}" "chmod +x /opt/blog/bin/deploy_release.sh /opt/blog/bin/rollback_release.sh && /opt/blog/bin/deploy_release.sh '${RELEASE_SHA}'"
+          ssh -p "${PORT}" "${REMOTE}" "chmod +x /opt/blog/bin/deploy_release.sh /opt/blog/bin/rollback_release.sh && RUN_DB_MIGRATIONS=true /opt/blog/bin/deploy_release.sh '${RELEASE_SHA}'"

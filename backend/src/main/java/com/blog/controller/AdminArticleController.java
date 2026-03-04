@@ -36,7 +36,7 @@ public class AdminArticleController {
     private final NotionImportService notionImportService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public ResponseEntity<ApiResponse<Page<ArticleSummaryDTO>>> getAllArticles(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -46,14 +46,14 @@ public class AdminArticleController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public ResponseEntity<ApiResponse<ArticleDetailDTO>> getArticleDetail(@PathVariable Long id) {
         ArticleDetailDTO article = articleService.getArticleDetailForAdmin(id);
         return ResponseEntity.ok(ApiResponse.success(article));
     }
 
     @PostMapping("/import-notion/preview")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public ResponseEntity<ApiResponse<NotionImportPreviewResponse>> previewNotion(
             @Valid @RequestBody NotionImportRequest request,
             Authentication authentication) {
@@ -63,7 +63,7 @@ public class AdminArticleController {
     }
 
     @PostMapping("/import-notion")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public ResponseEntity<ApiResponse<Long>> importNotion(
             @Valid @RequestBody NotionImportRequest request,
             Authentication authentication) {

@@ -36,7 +36,10 @@ public class User {
     private String passwordHash;
 
     @Column(nullable = false, length = 20)
-    private String role = "USER";
+    private String role = "MEMBER";
+
+    @Column(nullable = false)
+    private Boolean enabled = true;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

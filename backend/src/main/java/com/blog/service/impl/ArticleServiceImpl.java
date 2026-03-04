@@ -8,12 +8,14 @@ import com.blog.dto.category.CategoryDTO;
 import com.blog.dto.tag.TagDTO;
 import com.blog.entity.Article;
 import com.blog.entity.Category;
+import com.blog.entity.FootprintPhoto;
 import com.blog.entity.Tag;
 import com.blog.entity.User;
 import com.blog.exception.BusinessException;
 import com.blog.repository.ArticleRepository;
 import com.blog.repository.CategoryRepository;
 import com.blog.repository.CommentRepository;
+import com.blog.repository.FootprintPhotoRepository;
 import com.blog.repository.TagRepository;
 import com.blog.repository.UserRepository;
 import com.blog.service.ArticleService;
@@ -44,6 +46,7 @@ public class ArticleServiceImpl implements ArticleService {
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
     private final CommentRepository commentRepository;
+    private final FootprintPhotoRepository footprintPhotoRepository;
 
     @Override
     public Page<ArticleSummaryDTO> getPublishedArticles(Pageable pageable) {
@@ -137,6 +140,7 @@ public class ArticleServiceImpl implements ArticleService {
         if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
             article.setTags(loadTags(request.getTagIds()));
         }
+        article.setCoverPhoto(resolveCoverPhoto(request.getCoverPhotoId()));
 
         Article saved = articleRepository.save(article);
         log.info("Article created with id {}", saved.getId());
@@ -183,6 +187,7 @@ public class ArticleServiceImpl implements ArticleService {
         if (request.getTagIds() != null) {
             article.setTags(request.getTagIds().isEmpty() ? new HashSet<>() : loadTags(request.getTagIds()));
         }
+        article.setCoverPhoto(resolveCoverPhoto(request.getCoverPhotoId()));
 
         articleRepository.save(article);
     }
@@ -247,6 +252,8 @@ public class ArticleServiceImpl implements ArticleService {
         dto.setTitle(article.getTitle());
         dto.setSlug(article.getSlug());
         dto.setSummary(article.getSummary());
+        dto.setCoverPhotoId(article.getCoverPhoto() == null ? null : article.getCoverPhoto().getId());
+        dto.setCoverImage(article.getCoverPhoto() == null ? null : article.getCoverPhoto().getUrl());
         dto.setStatus(article.getStatus());
         dto.setViews(article.getViews());
         dto.setPublishedAt(article.getPublishedAt());
@@ -283,6 +290,8 @@ public class ArticleServiceImpl implements ArticleService {
         dto.setSlug(article.getSlug());
         dto.setContent(article.getContent());
         dto.setSummary(article.getSummary());
+        dto.setCoverPhotoId(article.getCoverPhoto() == null ? null : article.getCoverPhoto().getId());
+        dto.setCoverImage(article.getCoverPhoto() == null ? null : article.getCoverPhoto().getUrl());
         dto.setStatus(article.getStatus());
         dto.setViews(article.getViews());
         dto.setPublishedAt(article.getPublishedAt());
@@ -311,5 +320,17 @@ public class ArticleServiceImpl implements ArticleService {
         }
 
         return dto;
+    }
+
+    private FootprintPhoto resolveCoverPhoto(Long coverPhotoId) {
+        if (coverPhotoId == null) {
+            return null;
+        }
+        FootprintPhoto photo = footprintPhotoRepository.findById(coverPhotoId)
+                .orElseThrow(() -> new EntityNotFoundException("Cover photo not found"));
+        if (!FootprintPhoto.SOURCE_TYPE_COVER_MATERIAL.equals(photo.getSourceType())) {
+            throw new BusinessException("Cover photo must come from cover material pool", HttpStatus.BAD_REQUEST);
+        }
+        return photo;
     }
 }

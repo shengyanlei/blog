@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@repo/ui/components/ui/button'
 import { Input } from '@repo/ui/components/ui/input'
@@ -13,6 +13,7 @@ import type { ApiResponse } from '../../lib/api'
 import type { ArticleDetail, ArticleSummary, Category, PageResult, Tag } from '../../types/api'
 import { flattenCategoryTree } from '../../lib/categoryTree'
 import { slugify } from '../../lib/slug'
+import CoverMaterialPicker from '../../components/admin/CoverMaterialPicker'
 
 type EditorMode = 'create' | 'edit'
 
@@ -22,6 +23,7 @@ interface ArticleFormState {
     content: string
     categoryId?: number
     tagIds: number[]
+    coverPhotoId?: number | null
 }
 
 const initialForm: ArticleFormState = {
@@ -30,6 +32,7 @@ const initialForm: ArticleFormState = {
     content: '',
     categoryId: undefined,
     tagIds: [],
+    coverPhotoId: null,
 }
 
 function toFormState(article: ArticleDetail): ArticleFormState {
@@ -39,6 +42,7 @@ function toFormState(article: ArticleDetail): ArticleFormState {
         content: article.content ?? '',
         categoryId: article.category?.id,
         tagIds: (article.tags ?? []).map((tag) => tag.id),
+        coverPhotoId: article.coverPhotoId ?? null,
     }
 }
 
@@ -149,6 +153,7 @@ export default function ArticleEditorPage() {
                 content: payload.content,
                 categoryId: payload.categoryId,
                 tagIds: payload.tagIds,
+                coverPhotoId: payload.coverPhotoId ?? null,
             })
             return unwrapResponse(res.data)
         },
@@ -174,6 +179,7 @@ export default function ArticleEditorPage() {
                 content: payload.content,
                 categoryId: payload.categoryId,
                 tagIds: payload.tagIds,
+                coverPhotoId: payload.coverPhotoId ?? null,
             })
             return unwrapResponse(res.data)
         },
@@ -504,6 +510,12 @@ export default function ArticleEditorPage() {
                             </div>
                         </div>
                     </div>
+
+                    <CoverMaterialPicker
+                        value={form.coverPhotoId ?? null}
+                        onChange={(coverPhotoId) => setForm((prev) => ({ ...prev, coverPhotoId }))}
+                        disabled={loadingDraft}
+                    />
 
                     <div className="admin-editor" data-color-mode="light">
                         <MDEditor

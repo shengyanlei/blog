@@ -73,19 +73,21 @@ public class SecurityConfig {
                 // Journeys: GET public, other operations require login
                 .antMatchers(HttpMethod.GET, "/api/journeys/**").permitAll()
                 .antMatchers("/api/journeys/**").authenticated()
+                .antMatchers("/api/materials/**").authenticated()
+                .antMatchers("/api/cover-materials/**").authenticated()
                 // Travel plans are private
                 .antMatchers("/api/travel-plans/**").authenticated()
                 // Footprints: GET public, other operations require login
                 .antMatchers(HttpMethod.GET, "/api/footprints/**").permitAll()
                 .antMatchers("/api/footprints/**").authenticated()
-                .antMatchers("/api/comments/**").hasRole("ADMIN")
-                .antMatchers("/api/admin/**").hasRole("ADMIN")
-                .antMatchers(HttpMethod.POST, "/api/categories/**", "/api/tags/**").hasRole("ADMIN")
-                .antMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
-                .antMatchers(HttpMethod.DELETE, "/api/categories/**", "/api/tags/**").hasRole("ADMIN")
-                .antMatchers(HttpMethod.POST, "/api/articles/**").hasRole("ADMIN")
-                .antMatchers(HttpMethod.PUT, "/api/articles/**").hasRole("ADMIN")
-                .antMatchers(HttpMethod.DELETE, "/api/articles/**").hasRole("ADMIN")
+                .antMatchers("/api/comments/**").hasAnyRole("ADMIN", "OWNER")
+                .antMatchers("/api/admin/**").hasAnyRole("ADMIN", "OWNER")
+                .antMatchers(HttpMethod.POST, "/api/categories/**", "/api/tags/**").hasAnyRole("ADMIN", "OWNER")
+                .antMatchers(HttpMethod.PUT, "/api/categories/**").hasAnyRole("ADMIN", "OWNER")
+                .antMatchers(HttpMethod.DELETE, "/api/categories/**", "/api/tags/**").hasAnyRole("ADMIN", "OWNER")
+                .antMatchers(HttpMethod.POST, "/api/articles/**").hasAnyRole("ADMIN", "OWNER")
+                .antMatchers(HttpMethod.PUT, "/api/articles/**").hasAnyRole("ADMIN", "OWNER")
+                .antMatchers(HttpMethod.DELETE, "/api/articles/**").hasAnyRole("ADMIN", "OWNER")
                 .anyRequest().authenticated();
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

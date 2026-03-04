@@ -11,6 +11,7 @@ import { api, unwrapResponse } from '../../lib/api'
 import type { ApiResponse } from '../../lib/api'
 import type { AuthResponse } from '../../types/api'
 import { paperPatternStyle, paperThemeVars } from '../../lib/theme'
+import { firstAccessibleAdminPath } from '../../constants/adminTabs'
 
 export default function LoginPage() {
     const login = useAuthStore((state) => state.login)
@@ -30,7 +31,8 @@ export default function LoginPage() {
         },
         onSuccess: (data) => {
             login(data.token, data.user)
-            const redirect = (location.state as any)?.from?.pathname ?? '/admin/dashboard'
+            const fallbackPath = firstAccessibleAdminPath(data.user) || '/admin/dashboard'
+            const redirect = (location.state as any)?.from?.pathname ?? fallbackPath
             navigate(redirect, { replace: true })
         },
         onError: (error) => {

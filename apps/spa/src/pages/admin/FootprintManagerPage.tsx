@@ -21,6 +21,7 @@ import type {
 } from '../../types/api'
 
 type Tab = 'journey' | 'plan' | 'asset'
+type FootprintManagerMode = 'footprints' | 'materials'
 
 const statusOptions: TravelPlanStatus[] = ['IDEA', 'PLANNING', 'BOOKED', 'DONE', 'CANCELED']
 const priorityOptions: TravelPlanPriority[] = ['LOW', 'MEDIUM', 'HIGH']
@@ -40,9 +41,9 @@ const priorityLabel: Record<TravelPlanPriority, string> = {
 }
 
 const tabDescription: Record<Tab, string> = {
-    journey: '旅程管理：维护已发生的旅行章节（前台公开展示）。',
+    journey: '旅程管理：维护已发生的旅程章节（前台公开展示）。',
     plan: '计划管理：维护未来计划（仅登录后可见）。',
-    asset: '素材池：先上传图片，再绑定标准地址，最后将地址桶归档到旅程。',
+    asset: '照片墙：先上传图片，再绑定标准地址，最后将地址桶归档到旅程。',
 }
 
 const emptyJourneyForm = {
@@ -114,8 +115,11 @@ type AssetAddressTab = 'country' | 'province' | 'city' | 'detail'
 const extractErrorMessage = (error: any) => {
     const statusCode = error?.response?.status
     const requestUrl = String(error?.config?.url || '')
-    if (statusCode === 404 && requestUrl.includes('/journeys/assets/')) {
-        return '后端未加载素材池新接口（/api/journeys/assets/*）。请重启 backend 并确认运行的是最新代码。'
+    if (statusCode === 413 && requestUrl.includes('/materials/upload')) {
+        return '上传失败：请求体过大（413）。请将 Nginx 的 client_max_body_size 调大到 20m 或以上，并重启 Nginx。'
+    }
+    if (statusCode === 404 && requestUrl.includes('/materials/')) {
+        return '后端未加载照片墙新接口（/api/materials/*）。请重启 backend 并确认运行的是最新代码。'
     }
     const message = error?.response?.data?.message || error?.message
     if (typeof message === 'string' && message.trim()) {
@@ -124,10 +128,11 @@ const extractErrorMessage = (error: any) => {
     return '操作失败，请稍后重试'
 }
 
-export default function FootprintManagerPage() {
+export default function FootprintManagerPage({ mode = 'footprints' }: { mode?: FootprintManagerMode }) {
     const qc = useQueryClient()
+    const availableTabs = mode === 'materials' ? (['asset'] as Tab[]) : (['journey', 'plan'] as Tab[])
 
-    const [tab, setTab] = useState<Tab>('journey')
+    const [tab, setTab] = useState<Tab>(availableTabs[0])
     const [keyword, setKeyword] = useState('')
 
     const [journeyId, setJourneyId] = useState<number | null>(null)
@@ -184,7 +189,7 @@ export default function FootprintManagerPage() {
 
     const assets = useQuery<UnassignedLocationAsset[]>({
         queryKey: ['admin', 'assets'],
-        queryFn: async () => unwrapResponse((await api.get('/journeys/assets/unassigned')).data) as UnassignedLocationAsset[],
+        queryFn: async () => unwrapResponse((await api.get('/materials/unassigned')).data) as UnassignedLocationAsset[],
     })
 
     const pendingAssetsQuery = useQuery<PageResult<PendingAssetPhoto>>({
@@ -193,7 +198,7 @@ export default function FootprintManagerPage() {
         queryFn: async () =>
             unwrapResponse(
                 (
-                    await api.get('/journeys/assets/pending', {
+                    await api.get('/materials/pending', {
                         params: {
                             page: pendingPage,
                             size: PENDING_PAGE_SIZE,
@@ -281,6 +286,12 @@ export default function FootprintManagerPage() {
     useEffect(() => {
         setPendingPage(0)
     }, [pendingScope, pendingKeyword, pendingMonth, pendingHasShotAt])
+
+    useEffect(() => {
+        if (!availableTabs.includes(tab)) {
+            setTab(availableTabs[0])
+        }
+    }, [availableTabs, tab])
 
     useEffect(() => {
         if (!bindProvince) {
@@ -482,7 +493,7 @@ export default function FootprintManagerPage() {
         }) =>
             unwrapResponse(
                 (
-                    await api.post('/journeys/assets/pending/bind-address', {
+                    await api.post('/materials/pending/bind-address', {
                         photoIds,
                         address: { country, province, city, addressDetail },
                     })
@@ -624,7 +635,7 @@ export default function FootprintManagerPage() {
                 })
 
                 try {
-                    await api.post('/journeys/assets/upload', formData)
+                    await api.post('/materials/upload', formData)
                     successCount += batch.length
                     patchUploadJobs(ids, { status: 'success', error: undefined })
                 } catch (error: any) {
@@ -799,13 +810,17 @@ export default function FootprintManagerPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="mb-2 text-3xl font-display font-semibold text-[color:var(--ink)]">足迹编年管理</h1>
-                <p className="text-[color:var(--ink-muted)]">管理旅程章节、未来计划和未归档素材。</p>
+                <h1 className="mb-2 text-3xl font-display font-semibold text-[color:var(--ink)]">
+                    {mode === 'materials' ? '照片墙管理' : '足迹编年管理'}
+                </h1>
+                <p className="text-[color:var(--ink-muted)]">
+                    {mode === 'materials' ? '上传照片、绑定标准地址并归档到旅程。' : '管理旅程章节与未来计划。'}
+                </p>
             </div>
 
             <div className="space-y-2">
                 <div className="flex flex-wrap gap-2">
-                    {(['journey', 'plan', 'asset'] as Tab[]).map((item) => (
+                    {availableTabs.map((item) => (
                         <Button
                             key={item}
                             variant={tab === item ? 'default' : 'outline'}
@@ -816,7 +831,7 @@ export default function FootprintManagerPage() {
                             }
                             onClick={() => setTab(item)}
                         >
-                            {item === 'journey' ? '旅程管理' : item === 'plan' ? '计划管理' : '素材池'}
+                            {item === 'journey' ? '旅程管理' : item === 'plan' ? '计划管理' : '照片墙'}
                         </Button>
                     ))}
                 </div>

@@ -32,5 +32,8 @@ public class NotionImportRequest {
 
     private Set<Long> tagIds;
 
+    private Long coverPhotoId;
+
     private Boolean publish;
 }
+

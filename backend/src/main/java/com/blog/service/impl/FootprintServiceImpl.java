@@ -243,7 +243,13 @@ public class FootprintServiceImpl implements FootprintService {
             Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
             String url = "/uploads/footprints/" + filename;
 
-            ReverseGeoResult geo = extractLocation(file);
+            ReverseGeoResult geo = new ReverseGeoResult();
+            try {
+                geo = extractLocation(file);
+            } catch (Exception ex) {
+                // 元数据解析失败不应阻塞上传，降级为仅保存图片。
+                log.warn("Parse EXIF/GPS failed for uploaded image, fallback to raw upload. filename={}", filename, ex);
+            }
             return new UploadPhotoResponse(url, geo.province, geo.city, geo.shotAt);
         } catch (Exception e) {
             throw new RuntimeException("上传失败: " + e.getMessage(), e);

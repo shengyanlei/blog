@@ -15,21 +15,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 管理端评论管理接口。
- */
 @RestController
 @RequestMapping("/api/admin/comments")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','OWNER')")
 public class AdminCommentController {
 
     private final CommentService commentService;
 
-    /**
-     * 分页获取评论，支持按状态筛选。
-     */
     @GetMapping
     public ResponseEntity<ApiResponse<Page<CommentDTO>>> listComments(
             @RequestParam(required = false) String status,

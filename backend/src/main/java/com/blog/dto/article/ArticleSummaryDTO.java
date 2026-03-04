@@ -21,6 +21,8 @@ public class ArticleSummaryDTO {
     private String title;
     private String slug;
     private String summary;
+    private Long coverPhotoId;
+    private String coverImage;
     private String status;
     private Long views;
     private LocalDateTime publishedAt;

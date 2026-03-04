@@ -23,6 +23,7 @@ import type { ApiResponse } from '../../lib/api'
 import type { ArticleDetail, Comment } from '../../types/api'
 import { buildCommentTree, type CommentTreeNode } from '../../lib/commentTree'
 import { paperPatternStyle, paperThemeVars } from '../../lib/theme'
+import { resolveMediaUrl } from '../../lib/mediaUrl'
 
 const coverImageFor = (seed: number) =>
     `https://images.unsplash.com/photo-1482192596544-9eb780fc7f66?w=1600&q=80&auto=format&fit=crop&sig=${seed}`
@@ -419,7 +420,7 @@ export default function ArticleDetailPage() {
     const breadcrumbCategory = article.category?.slugPath
         ? `/${article.category.slugPath}`
         : derivedCategoryPath || article.category?.name || 'Uncategorized'
-    const heroImage = article.coverImage || coverImageFor(article.id)
+    const heroImage = resolveMediaUrl(article.coverImage) || coverImageFor(article.id)
     const readTime = Math.max(1, Math.ceil((article.content?.length || 0) / 500))
     return (
         <div

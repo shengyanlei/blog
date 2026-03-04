@@ -1,0 +1,175 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[2m21:20:15[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../pages/admin/CoverMaterialPoolPage" from "src/router/index.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mE:/Code/blog/apps/spa/src/router/index.tsx[39m:20:34
+[33m  19 |  import FootprintManagerPage from "../pages/admin/FootprintManagerPage";
+  20 |  import MaterialPoolPage from "../pages/admin/MaterialPoolPage";
+  21 |  import CoverMaterialPoolPage from "../pages/admin/CoverMaterialPoolPage";
+     |                                     ^
+  22 |  import NotionOAuthCallbackPage from "../pages/admin/NotionOAuthCallbackPage";
+  23 |  import SettingsPage from "../pages/admin/SettingsPage";[39m
+      at TransformPluginContext._formatError (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 20)
+      at async TransformPluginContext.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m21:20:15[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../pages/admin/CoverMaterialPoolPage" from "src/router/index.tsx". Does the file exist?
+[2m21:20:15[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../pages/admin/CoverMaterialPoolPage" from "src/router/index.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mE:/Code/blog/apps/spa/src/router/index.tsx[39m:20:34
+[33m  19 |  import FootprintManagerPage from "../pages/admin/FootprintManagerPage";
+  20 |  import MaterialPoolPage from "../pages/admin/MaterialPoolPage";
+  21 |  import CoverMaterialPoolPage from "../pages/admin/CoverMaterialPoolPage";
+     |                                     ^
+  22 |  import NotionOAuthCallbackPage from "../pages/admin/NotionOAuthCallbackPage";
+  23 |  import SettingsPage from "../pages/admin/SettingsPage";[39m
+      at TransformPluginContext._formatError (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 20)
+      at async TransformPluginContext.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m21:20:25[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../pages/admin/CoverMaterialPoolPage" from "src/router/index.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mE:/Code/blog/apps/spa/src/router/index.tsx[39m:20:34
+[33m  19 |  import FootprintManagerPage from "../pages/admin/FootprintManagerPage";
+  20 |  import MaterialPoolPage from "../pages/admin/MaterialPoolPage";
+  21 |  import CoverMaterialPoolPage from "../pages/admin/CoverMaterialPoolPage";
+     |                                     ^
+  22 |  import NotionOAuthCallbackPage from "../pages/admin/NotionOAuthCallbackPage";
+  23 |  import SettingsPage from "../pages/admin/SettingsPage";[39m
+      at TransformPluginContext._formatError (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 20)
+      at async TransformPluginContext.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m21:20:25[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../pages/admin/CoverMaterialPoolPage" from "src/router/index.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mE:/Code/blog/apps/spa/src/router/index.tsx[39m:20:34
+[33m  19 |  import FootprintManagerPage from "../pages/admin/FootprintManagerPage";
+  20 |  import MaterialPoolPage from "../pages/admin/MaterialPoolPage";
+  21 |  import CoverMaterialPoolPage from "../pages/admin/CoverMaterialPoolPage";
+     |                                     ^
+  22 |  import NotionOAuthCallbackPage from "../pages/admin/NotionOAuthCallbackPage";
+  23 |  import SettingsPage from "../pages/admin/SettingsPage";[39m
+      at TransformPluginContext._formatError (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 20)
+      at async TransformPluginContext.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m21:20:56[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../pages/admin/CoverMaterialPoolPage" from "src/router/index.tsx". Does the file exist?
+[2m21:20:56[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../pages/admin/CoverMaterialPoolPage" from "src/router/index.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mE:/Code/blog/apps/spa/src/router/index.tsx[39m:20:34
+[33m  19 |  import FootprintManagerPage from "../pages/admin/FootprintManagerPage";
+  20 |  import MaterialPoolPage from "../pages/admin/MaterialPoolPage";
+  21 |  import CoverMaterialPoolPage from "../pages/admin/CoverMaterialPoolPage";
+     |                                     ^
+  22 |  import NotionOAuthCallbackPage from "../pages/admin/NotionOAuthCallbackPage";
+  23 |  import SettingsPage from "../pages/admin/SettingsPage";[39m
+      at TransformPluginContext._formatError (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 20)
+      at async TransformPluginContext.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m21:40:34[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../../components/admin/CoverMaterialPicker" from "src/pages/admin/ArticleUploadPage.tsx". Does the file exist?
+[2m21:40:34[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../../components/admin/CoverMaterialPicker" from "src/pages/admin/ArticleEditorPage.tsx". Does the file exist?
+[2m21:40:34[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/admin/CoverMaterialPicker" from "src/pages/admin/ArticleEditorPage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mE:/Code/blog/apps/spa/src/pages/admin/ArticleEditorPage.tsx[39m:16:32
+[33m  29 |  import { flattenCategoryTree } from "../../lib/categoryTree";
+  30 |  import { slugify } from "../../lib/slug";
+  31 |  import CoverMaterialPicker from "../../components/admin/CoverMaterialPicker";
+     |                                   ^
+  32 |  const initialForm = {
+  33 |    title: "",[39m
+      at TransformPluginContext._formatError (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 16)
+      at async TransformPluginContext.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m21:40:34[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/admin/CoverMaterialPicker" from "src/pages/admin/ArticleUploadPage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mE:/Code/blog/apps/spa/src/pages/admin/ArticleUploadPage.tsx[39m:15:32
+[33m  28 |  import { flattenCategoryTree } from "../../lib/categoryTree";
+  29 |  import { slugify } from "../../lib/slug";
+  30 |  import CoverMaterialPicker from "../../components/admin/CoverMaterialPicker";
+     |                                   ^
+  31 |  function normalizeNotionError(message, fallback) {
+  32 |    if (!message) return fallback;[39m
+      at TransformPluginContext._formatError (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 15)
+      at async TransformPluginContext.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m21:40:34[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/admin/CoverMaterialPicker" from "src/pages/admin/ArticleEditorPage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mE:/Code/blog/apps/spa/src/pages/admin/ArticleEditorPage.tsx[39m:16:32
+[33m  29 |  import { flattenCategoryTree } from "../../lib/categoryTree";
+  30 |  import { slugify } from "../../lib/slug";
+  31 |  import CoverMaterialPicker from "../../components/admin/CoverMaterialPicker";
+     |                                   ^
+  32 |  const initialForm = {
+  33 |    title: "",[39m
+      at TransformPluginContext._formatError (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 16)
+      at async TransformPluginContext.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m21:40:34[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../../components/admin/CoverMaterialPicker" from "src/pages/admin/ArticleUploadPage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mE:/Code/blog/apps/spa/src/pages/admin/ArticleUploadPage.tsx[39m:15:32
+[33m  28 |  import { flattenCategoryTree } from "../../lib/categoryTree";
+  29 |  import { slugify } from "../../lib/slug";
+  30 |  import CoverMaterialPicker from "../../components/admin/CoverMaterialPicker";
+     |                                   ^
+  31 |  function normalizeNotionError(message, fallback) {
+  32 |    if (!message) return fallback;[39m
+      at TransformPluginContext._formatError (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 15)
+      at async TransformPluginContext.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///E:/Code/blog/node_modules/.pnpm/vite@5.4.21_@types+node@20.19.25/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)

@@ -33,7 +33,7 @@
 ### 3.1 安装依赖
 
 ```bash
-sudo dnf install -y nginx java-11-openjdk curl tar
+sudo dnf install -y nginx java-11-openjdk curl tar mariadb
 ```
 
 如果你的系统使用 `yum`，请将命令中的 `dnf` 替换为 `yum`。
@@ -117,6 +117,7 @@ sudo systemctl enable blog-backend.service
 server {
     listen 80;
     server_name 39.102.139.140;
+    client_max_body_size 50m;
 
     root /opt/blog/current/frontend/dist;
     index index.html;
@@ -222,3 +223,27 @@ ls -1 /opt/blog/releases
 - 采用两阶段迁移：
   1. 兼容版本（新增字段/兼容逻辑）
   2. 稳定后清理旧结构
+
+## 10. Optional: Auto-run DB Migrations During Deploy
+
+- The release archive now contains `backend/scripts/*.sql`.
+- `deploy_release.sh` supports optional migration execution via:
+  - `RUN_DB_MIGRATIONS=true`
+  - `BACKEND_ENV_FILE=/etc/blog/blog-backend.env` (default path)
+- If enabled, it applies these scripts in order:
+  1. `prod-journey-schema.sql`
+  2. `prod-travel-plan-schema.sql`
+  3. `prod-location-address-schema.sql`
+  4. `prod-pending-asset-schema.sql`
+
+Example:
+
+```bash
+RUN_DB_MIGRATIONS=true /opt/blog/bin/deploy_release.sh <sha>
+```
+
+Notes:
+
+- Requires `mysql` client on server.
+- Reads DB connection from `SPRING_DATASOURCE_*` in backend env file.
+- SQL scripts are idempotent and safe for repeated deploys.

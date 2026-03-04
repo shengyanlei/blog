@@ -9,6 +9,9 @@ import java.time.LocalDateTime;
         @Index(name = "idx_fp_location", columnList = "location_id")
 })
 public class FootprintPhoto {
+    public static final String SOURCE_TYPE_PHOTO_WALL = "PHOTO_WALL";
+    public static final String SOURCE_TYPE_COVER_MATERIAL = "COVER_MATERIAL";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -31,10 +34,16 @@ public class FootprintPhoto {
 
     private Boolean cover = false;
 
+    @Column(name = "source_type", nullable = false, length = 30)
+    private String sourceType = SOURCE_TYPE_PHOTO_WALL;
+
     private LocalDateTime createdAt;
 
     @PrePersist
     public void prePersist() {
+        if (sourceType == null || sourceType.trim().isEmpty()) {
+            sourceType = SOURCE_TYPE_PHOTO_WALL;
+        }
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
@@ -102,6 +111,14 @@ public class FootprintPhoto {
 
     public void setCover(Boolean cover) {
         this.cover = cover;
+    }
+
+    public String getSourceType() {
+        return sourceType;
+    }
+
+    public void setSourceType(String sourceType) {
+        this.sourceType = sourceType;
     }
 
     public LocalDateTime getCreatedAt() {

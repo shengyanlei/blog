@@ -24,7 +24,7 @@ public class AdminSettingsController {
     private final SettingsService settingsService;
 
     @PutMapping("/password")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @Valid @RequestBody ChangePasswordRequest request,
             Principal principal) {
@@ -33,21 +33,21 @@ public class AdminSettingsController {
     }
 
     @GetMapping("/profile")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<AdminProfileResponse>> getProfile(Principal principal) {
         AdminProfileResponse response = settingsService.getProfile(principal.getName());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/site-config")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<SiteConfigResponse>> getSiteConfig() {
         SiteConfigResponse response = settingsService.getSiteConfig();
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PutMapping("/site-config")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<ApiResponse<SiteConfigResponse>> updateSiteConfig(
             @Valid @RequestBody SiteConfigDTO request) {
         SiteConfigResponse response = settingsService.updateSiteConfig(request);

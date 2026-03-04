@@ -16,9 +16,13 @@ public interface FootprintPhotoRepository extends JpaRepository<FootprintPhoto, 
 
     List<FootprintPhoto> findByIdIn(Collection<Long> ids);
 
+    List<FootprintPhoto> findBySourceTypeOrderByCreatedAtDescIdDesc(String sourceType);
+
+    Page<FootprintPhoto> findBySourceType(String sourceType, Pageable pageable);
+
     @Query("SELECT p FROM FootprintPhoto p " +
             "LEFT JOIN p.location l " +
-            "WHERE (" +
+            "WHERE p.sourceType = :sourceType AND (" +
             "(:scope = 'PENDING' AND p.location IS NULL) OR " +
             "(:scope = 'BOUND' AND p.location IS NOT NULL) OR " +
             "(:scope = 'ALL')" +
@@ -33,6 +37,7 @@ public interface FootprintPhotoRepository extends JpaRepository<FootprintPhoto, 
             "AND (:monthEnd IS NULL OR p.createdAt < :monthEnd) " +
             "AND (:hasShotAt IS NULL OR (:hasShotAt = true AND p.shotAt IS NOT NULL) OR (:hasShotAt = false AND p.shotAt IS NULL))")
     Page<FootprintPhoto> findPendingAssets(
+            @Param("sourceType") String sourceType,
             @Param("scope") String scope,
             @Param("keyword") String keyword,
             @Param("monthStart") LocalDateTime monthStart,

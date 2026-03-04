@@ -5,12 +5,15 @@ import com.blog.entity.FootprintLocation;
 import com.blog.entity.FootprintPhoto;
 import com.blog.entity.TravelJourney;
 import com.blog.entity.TravelPlan;
+import com.blog.exception.BusinessException;
+import com.blog.repository.ArticleRepository;
 import com.blog.repository.FootprintLocationRepository;
 import com.blog.repository.FootprintPhotoRepository;
 import com.blog.repository.TravelJourneyRepository;
 import com.blog.repository.TravelPlanRepository;
 import com.blog.service.FootprintService;
 import com.blog.service.TravelJourneyService;
+import org.springframework.http.HttpStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -29,25 +32,30 @@ import java.util.stream.Stream;
 
 @Service
 public class TravelJourneyServiceImpl implements TravelJourneyService {
+    private static final String PHOTO_WALL_SOURCE = FootprintPhoto.SOURCE_TYPE_PHOTO_WALL;
+    private static final String COVER_MATERIAL_SOURCE = FootprintPhoto.SOURCE_TYPE_COVER_MATERIAL;
 
     private final TravelJourneyRepository journeyRepository;
     private final FootprintLocationRepository locationRepository;
     private final FootprintPhotoRepository photoRepository;
     private final TravelPlanRepository planRepository;
     private final FootprintService footprintService;
+    private final ArticleRepository articleRepository;
 
     public TravelJourneyServiceImpl(
             TravelJourneyRepository journeyRepository,
             FootprintLocationRepository locationRepository,
             FootprintPhotoRepository photoRepository,
             TravelPlanRepository planRepository,
-            FootprintService footprintService
+            FootprintService footprintService,
+            ArticleRepository articleRepository
     ) {
         this.journeyRepository = journeyRepository;
         this.locationRepository = locationRepository;
         this.photoRepository = photoRepository;
         this.planRepository = planRepository;
         this.footprintService = footprintService;
+        this.articleRepository = articleRepository;
     }
 
     @Override
@@ -221,6 +229,7 @@ public class TravelJourneyServiceImpl implements TravelJourneyService {
             FootprintPhoto photo = new FootprintPhoto();
             photo.setUrl(uploadResult.getUrl());
             photo.setShotAt(parseShotAt(uploadResult.getShotAt()));
+            photo.setSourceType(PHOTO_WALL_SOURCE);
             FootprintPhoto saved = photoRepository.save(photo);
             result.add(toPendingPhoto(saved));
         }
@@ -248,6 +257,7 @@ public class TravelJourneyServiceImpl implements TravelJourneyService {
         }
 
         Page<FootprintPhoto> pageData = photoRepository.findPendingAssets(
+                PHOTO_WALL_SOURCE,
                 scopeText,
                 keywordText,
                 monthStart,
@@ -338,6 +348,7 @@ public class TravelJourneyServiceImpl implements TravelJourneyService {
         if (photos.size() != uniqueIds.size()) {
             throw new IllegalArgumentException("Some photos do not exist");
         }
+        ensurePhotoWallSources(photos);
 
         FootprintLocation targetLocation = ensureLocation(country, province, city, addressDetail);
         int boundCount = 0;
@@ -371,6 +382,127 @@ public class TravelJourneyServiceImpl implements TravelJourneyService {
         result.setReboundCount(reboundCount);
         result.setSkippedCount(skippedCount);
         return result;
+    }
+
+    @Override
+    @Transactional
+    public void deleteMaterial(Long photoId) {
+        FootprintPhoto photo = photoRepository.findById(photoId)
+                .orElseThrow(() -> new IllegalArgumentException("Material not found"));
+        if (!PHOTO_WALL_SOURCE.equals(photo.getSourceType())) {
+            throw new IllegalArgumentException("Material not found");
+        }
+        if (photo.getLocation() != null) {
+            throw new BusinessException("Material is referenced by footprint location", HttpStatus.CONFLICT);
+        }
+        if (articleRepository.existsByCoverPhotoId(photoId)) {
+            throw new BusinessException("Material is referenced by article cover", HttpStatus.CONFLICT);
+        }
+        photoRepository.delete(photo);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CoverMaterialDTO> getCoverMaterials(int page, int size, Long photoId) {
+        int pageNumber = Math.max(page, 0);
+        int pageSize = Math.min(Math.max(size, 1), 100);
+
+        List<FootprintPhoto> photos = photoRepository.findBySourceTypeOrderByCreatedAtDescIdDesc(COVER_MATERIAL_SOURCE);
+        if (photoId != null) {
+            photos = photos.stream()
+                    .filter(photo -> Objects.equals(photo.getId(), photoId))
+                    .collect(Collectors.toList());
+        }
+
+        Set<Long> usedPhotoIds = new HashSet<>(articleRepository.findDistinctCoverPhotoIds());
+        int fromIndex = pageNumber * pageSize;
+        if (fromIndex >= photos.size()) {
+            return new PageImpl<>(List.of(), PageRequest.of(pageNumber, pageSize), photos.size());
+        }
+        int toIndex = Math.min(fromIndex + pageSize, photos.size());
+        List<CoverMaterialDTO> content = photos.subList(fromIndex, toIndex).stream()
+                .map(photo -> toCoverMaterial(photo, usedPhotoIds.contains(photo.getId())))
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(
+                content,
+                PageRequest.of(pageNumber, pageSize),
+                photos.size()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CoverMaterialDTO> recommendCoverMaterials(int size, Long photoId) {
+        int limit = Math.max(1, Math.min(size, 100));
+        List<FootprintPhoto> candidates = photoRepository.findBySourceTypeOrderByCreatedAtDescIdDesc(COVER_MATERIAL_SOURCE);
+        if (candidates.isEmpty()) {
+            return List.of();
+        }
+
+        Set<Long> usedPhotoIds = new HashSet<>(articleRepository.findDistinctCoverPhotoIds());
+        List<CoverMaterialDTO> result = new ArrayList<>();
+
+        if (photoId != null) {
+            for (FootprintPhoto candidate : candidates) {
+                if (Objects.equals(candidate.getId(), photoId)) {
+                    result.add(toCoverMaterial(candidate, usedPhotoIds.contains(candidate.getId())));
+                    break;
+                }
+            }
+        }
+
+        candidates.stream()
+                .filter(candidate -> photoId == null || !Objects.equals(candidate.getId(), photoId))
+                .sorted(Comparator
+                        .comparing((FootprintPhoto candidate) -> usedPhotoIds.contains(candidate.getId()))
+                        .thenComparing(FootprintPhoto::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(FootprintPhoto::getId, Comparator.reverseOrder()))
+                .limit(Math.max(0, limit - result.size()))
+                .map(candidate -> toCoverMaterial(candidate, usedPhotoIds.contains(candidate.getId())))
+                .forEach(result::add);
+
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public List<CoverMaterialDTO> uploadCoverMaterials(MultipartFile[] files) {
+        if (files == null || files.length == 0) {
+            throw new IllegalArgumentException("No files uploaded");
+        }
+        if (files.length > 50) {
+            throw new IllegalArgumentException("At most 50 files are allowed per upload");
+        }
+
+        List<CoverMaterialDTO> result = new ArrayList<>();
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) {
+                continue;
+            }
+            var uploadResult = footprintService.uploadAndParseLocation(file);
+            FootprintPhoto photo = new FootprintPhoto();
+            photo.setUrl(uploadResult.getUrl());
+            photo.setShotAt(parseShotAt(uploadResult.getShotAt()));
+            photo.setSourceType(COVER_MATERIAL_SOURCE);
+            FootprintPhoto saved = photoRepository.save(photo);
+            result.add(toCoverMaterial(saved, false));
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public void deleteCoverMaterial(Long photoId) {
+        FootprintPhoto photo = photoRepository.findById(photoId)
+                .orElseThrow(() -> new IllegalArgumentException("Cover material not found"));
+        if (!COVER_MATERIAL_SOURCE.equals(photo.getSourceType())) {
+            throw new IllegalArgumentException("Cover material not found");
+        }
+        if (articleRepository.existsByCoverPhotoId(photoId)) {
+            throw new BusinessException("Material is referenced by article cover", HttpStatus.CONFLICT);
+        }
+        photoRepository.delete(photo);
     }
 
     private LocalDate parseShotAt(String shotAt) {
@@ -498,12 +630,21 @@ public class TravelJourneyServiceImpl implements TravelJourneyService {
         if (photos.size() != uniqueIds.size()) {
             throw new IllegalArgumentException("Some photos do not exist");
         }
+        ensurePhotoWallSources(photos);
         for (FootprintPhoto photo : photos) {
             if (photo.getLocation() != null) {
                 throw new IllegalArgumentException("Some photos are already bound");
             }
         }
         return photos;
+    }
+
+    private void ensurePhotoWallSources(List<FootprintPhoto> photos) {
+        boolean hasInvalidSource = photos.stream()
+                .anyMatch(photo -> !PHOTO_WALL_SOURCE.equals(photo.getSourceType()));
+        if (hasInvalidSource) {
+            throw new IllegalArgumentException("Some photos are not from photo wall");
+        }
     }
 
     private void bindPhotosToLocation(List<FootprintPhoto> photos, FootprintLocation location) {
@@ -682,6 +823,15 @@ public class TravelJourneyServiceImpl implements TravelJourneyService {
         } else {
             dto.setFullAddress(null);
         }
+        return dto;
+    }
+
+    private CoverMaterialDTO toCoverMaterial(FootprintPhoto photo, boolean usedAsCover) {
+        CoverMaterialDTO dto = new CoverMaterialDTO();
+        dto.setPhotoId(photo.getId());
+        dto.setUrl(photo.getUrl());
+        dto.setUploadedAt(photo.getCreatedAt());
+        dto.setUsedAsCover(usedAsCover);
         return dto;
     }
 

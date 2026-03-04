@@ -5,6 +5,7 @@ import com.blog.dto.travel.JourneySummaryDTO;
 import com.blog.dto.travel.JourneyUpsertRequest;
 import com.blog.dto.travel.LinkLocationsRequest;
 import com.blog.dto.travel.PendingAssetPhotoDTO;
+import com.blog.dto.travel.CoverMaterialDTO;
 import com.blog.dto.travel.UnassignedLocationAssetDTO;
 import com.blog.dto.travel.BindPendingToPlanRequest;
 import com.blog.dto.travel.BindPendingToJourneyRequest;
@@ -43,4 +44,14 @@ public interface TravelJourneyService {
     BindPendingResultDTO bindPendingAssetsToJourney(BindPendingToJourneyRequest request);
 
     BindPendingResultDTO bindPendingAssetsToAddress(BindPendingToAddressRequest request);
+
+    void deleteMaterial(Long photoId);
+
+    Page<CoverMaterialDTO> getCoverMaterials(int page, int size, Long photoId);
+
+    List<CoverMaterialDTO> recommendCoverMaterials(int size, Long photoId);
+
+    List<CoverMaterialDTO> uploadCoverMaterials(MultipartFile[] files);
+
+    void deleteCoverMaterial(Long photoId);
 }

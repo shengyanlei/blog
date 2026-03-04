@@ -25,4 +25,6 @@ public class ArticleCreateRequest {
     private Long categoryId;
 
     private Set<Long> tagIds;
+
+    private Long coverPhotoId;
 }

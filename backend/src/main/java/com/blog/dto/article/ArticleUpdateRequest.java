@@ -16,4 +16,5 @@ public class ArticleUpdateRequest {
     private String summary;
     private Long categoryId;
     private Set<Long> tagIds;
+    private Long coverPhotoId;
 }

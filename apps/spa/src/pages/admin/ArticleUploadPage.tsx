@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui/components/ui/card'
 import { Button } from '@repo/ui/components/ui/button'
@@ -12,6 +12,7 @@ import type { ApiResponse } from '../../lib/api'
 import type { Category, Tag } from '../../types/api'
 import { flattenCategoryTree } from '../../lib/categoryTree'
 import { slugify } from '../../lib/slug'
+import CoverMaterialPicker from '../../components/admin/CoverMaterialPicker'
 
 type NotionAuthMode = 'AUTO' | 'OAUTH' | 'INTEGRATION' | 'PUBLIC'
 type NotionOwnerType = 'user' | 'workspace'
@@ -52,6 +53,7 @@ export default function ArticleUploadPage() {
     const [categorySearch, setCategorySearch] = useState('')
     const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
     const [tagIds, setTagIds] = useState<number[]>([])
+    const [coverPhotoId, setCoverPhotoId] = useState<number | null>(null)
 
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
@@ -106,6 +108,7 @@ export default function ArticleUploadPage() {
                 content,
                 categoryId,
                 tagIds,
+                coverPhotoId: coverPhotoId ?? null,
             }
             const res = await api.post<ApiResponse<number>>('/articles', payload)
             return unwrapResponse(res.data)
@@ -119,6 +122,7 @@ export default function ArticleUploadPage() {
             setCategoryId(undefined)
             setCategorySearch('')
             setTagIds([])
+            setCoverPhotoId(null)
             setErrorMsg(null)
         },
         onError: (err: any) => {
@@ -162,6 +166,7 @@ export default function ArticleUploadPage() {
                 summaryOverride: summary.trim() || undefined,
                 categoryId,
                 tagIds,
+                coverPhotoId: coverPhotoId ?? null,
                 publish: publishOnImport,
             }
             const res = await api.post<ApiResponse<number>>('/admin/articles/import-notion', payload)
@@ -177,6 +182,7 @@ export default function ArticleUploadPage() {
             setCategoryId(undefined)
             setCategorySearch('')
             setTagIds([])
+            setCoverPhotoId(null)
             setErrorMsg(null)
             setNotionError(null)
             setPublishOnImport(false)
@@ -589,6 +595,12 @@ export default function ArticleUploadPage() {
                                 {!tagsQuery.data?.length && <p className="text-xs text-[color:var(--ink-soft)]">暂无可选标签</p>}
                             </div>
                         </div>
+
+                        <CoverMaterialPicker
+                            value={coverPhotoId}
+                            onChange={setCoverPhotoId}
+                            title="文章封面（来自素材池）"
+                        />
                     </CardContent>
                 </Card>
             </div>

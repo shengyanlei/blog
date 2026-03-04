@@ -72,7 +72,7 @@ public class ArticleController {
      * Create article (admin only).
      */
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public ResponseEntity<ApiResponse<Long>> createArticle(
             @Valid @RequestBody ArticleCreateRequest request,
             Authentication authentication) {
@@ -85,7 +85,7 @@ public class ArticleController {
      * Update article (admin only).
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public ResponseEntity<ApiResponse<Void>> updateArticle(
             @PathVariable Long id,
             @Valid @RequestBody ArticleUpdateRequest request) {
@@ -97,7 +97,7 @@ public class ArticleController {
      * Delete article (admin only).
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public ResponseEntity<ApiResponse<Void>> deleteArticle(@PathVariable Long id) {
         articleService.deleteArticle(id);
         return ResponseEntity.ok(ApiResponse.success());
@@ -107,7 +107,7 @@ public class ArticleController {
      * Publish or unpublish article (admin only).
      */
     @PostMapping("/{id}/publish")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public ResponseEntity<ApiResponse<Void>> publishArticle(
             @PathVariable Long id,
             @RequestParam boolean publish) {

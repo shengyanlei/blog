@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -25,9 +26,12 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -66,14 +70,23 @@ public class NotionImportServiceImpl implements NotionImportService {
     @Value("${notion.publicImportEnabled:false}")
     private boolean publicImportEnabled;
 
-    @Value("${notion.connect-timeout-ms:8000}")
+    @Value("${notion.connect-timeout-ms:15000}")
     private int notionConnectTimeoutMs;
 
-    @Value("${notion.read-timeout-ms:15000}")
+    @Value("${notion.read-timeout-ms:30000}")
     private int notionReadTimeoutMs;
 
     @Value("${notion.max-retries:2}")
     private int notionMaxRetries;
+
+    @Value("${notion.network-mode:DIRECT}")
+    private String notionNetworkMode;
+
+    @Value("${notion.proxy.host:}")
+    private String notionProxyHost;
+
+    @Value("${notion.proxy.port:0}")
+    private int notionProxyPort;
 
     @Override
     public NotionImportPreviewResponse preview(NotionImportRequest request, String username) {
@@ -126,6 +139,7 @@ public class NotionImportServiceImpl implements NotionImportService {
         createRequest.setSummary(summary);
         createRequest.setCategoryId(request.getCategoryId());
         createRequest.setTagIds(request.getTagIds());
+        createRequest.setCoverPhotoId(request.getCoverPhotoId());
 
         Long articleId = articleService.createArticle(createRequest, username);
 
@@ -243,56 +257,81 @@ public class NotionImportServiceImpl implements NotionImportService {
             throw new BusinessException("Notion Token 未配置");
         }
 
-        try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setBearerAuth(token);
-            headers.add("Notion-Version", notionVersion);
-            headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.add("Notion-Version", notionVersion);
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
-            HttpEntity<Object> entity = new HttpEntity<>(body, headers);
-            RestTemplate restTemplate = createRestTemplate();
-            int maxAttempts = Math.max(1, notionMaxRetries + 1);
+        HttpEntity<Object> entity = new HttpEntity<>(body, headers);
+        RestTemplate restTemplate = createRestTemplate();
+        int maxAttempts = Math.max(1, notionMaxRetries + 1);
 
-            for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-                try {
-                    return restTemplate.exchange(url, method, entity, JsonNode.class);
-                } catch (ResourceAccessException ex) {
-                    boolean canRetry = attempt < maxAttempts && isRetryableNetworkError(ex);
-                    if (!canRetry) {
-                        log.error("Notion API request failed after {} attempt(s): {} {}", attempt, method, url, ex);
-                        throw new BusinessException("Notion API 请求失败，请检查网络、代理或 TLS 配置");
-                    }
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                return restTemplate.exchange(url, method, entity, JsonNode.class);
+            } catch (HttpStatusCodeException ex) {
+                HttpStatus status = ex.getStatusCode();
+                boolean canRetry = attempt < maxAttempts && isRetryableStatus(status);
+                if (canRetry) {
+                    long backoffMs = calculateBackoffMs(attempt);
+                    log.warn("Notion API transient HTTP status {} (attempt {}/{}). Retrying in {}ms",
+                            status, attempt, maxAttempts, backoffMs);
+                    sleepQuietly(backoffMs);
+                    continue;
+                }
 
+                log.error("Notion API request failed with status {} after {} attempt(s): {} {}",
+                        status, attempt, method, url, ex);
+                throw mapHttpStatusException(ex);
+            } catch (ResourceAccessException ex) {
+                boolean canRetry = attempt < maxAttempts && isRetryableNetworkError(ex);
+                if (canRetry) {
                     long backoffMs = calculateBackoffMs(attempt);
                     log.warn("Notion API transient network error (attempt {}/{}): {}. Retrying in {}ms",
                             attempt, maxAttempts, ex.getMessage(), backoffMs);
                     sleepQuietly(backoffMs);
+                    continue;
                 }
+
+                log.error("Notion API network request failed after {} attempt(s): {} {}", attempt, method, url, ex);
+                throw new BusinessException(buildNetworkFailureMessage(ex), HttpStatus.BAD_GATEWAY);
+            } catch (BusinessException ex) {
+                throw ex;
+            } catch (Exception ex) {
+                log.error("Notion API request failed unexpectedly: {} {}", method, url, ex);
+                throw new BusinessException("Notion API 请求失败，请稍后重试", HttpStatus.BAD_GATEWAY);
             }
-            throw new BusinessException("Notion API 请求失败，请检查网络、代理或 TLS 配置");
-        } catch (HttpClientErrorException.Unauthorized e) {
-            throw new BusinessException("Notion Token 无效或未配置，请检查 NOTION_TOKEN 或 OAuth 授权");
-        } catch (HttpClientErrorException.Forbidden e) {
-            throw new BusinessException("没有权限访问该页面，请确认已分享给 Integration 或 OAuth 授权");
-        } catch (HttpClientErrorException.NotFound e) {
-            throw new BusinessException("Notion 页面未找到，请确认链接正确且已分享给 Integration");
-        } catch (HttpClientErrorException e) {
-            String msg = e.getResponseBodyAsString();
-            log.error("Notion API error ({}): {}", e.getStatusCode(), msg);
-            throw new BusinessException("Notion API 调用失败：" + e.getStatusCode());
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Notion API request failed", e);
-            throw new BusinessException("Notion API 请求失败，请检查网络、代理或 TLS 配置");
         }
+
+        throw new BusinessException("Notion API 请求失败，请稍后重试", HttpStatus.BAD_GATEWAY);
     }
 
     private RestTemplate createRestTemplate() {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Math.max(1000, notionConnectTimeoutMs));
         requestFactory.setReadTimeout(Math.max(1000, notionReadTimeoutMs));
+        configureProxy(requestFactory);
         return new RestTemplate(requestFactory);
+    }
+
+    private void configureProxy(SimpleClientHttpRequestFactory requestFactory) {
+        String mode = notionNetworkMode == null ? "DIRECT" : notionNetworkMode.trim().toUpperCase(Locale.ROOT);
+        switch (mode) {
+            case "DIRECT":
+                requestFactory.setProxy(Proxy.NO_PROXY);
+                return;
+            case "CUSTOM":
+                if (StringUtils.hasText(notionProxyHost) && notionProxyPort > 0) {
+                    Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(notionProxyHost.trim(), notionProxyPort));
+                    requestFactory.setProxy(proxy);
+                } else {
+                    log.warn("Notion network mode CUSTOM is configured but notion.proxy.host/port is invalid. Falling back to AUTO");
+                }
+                return;
+            case "AUTO":
+            default:
+                return;
+        }
     }
 
     private boolean isRetryableNetworkError(ResourceAccessException ex) {
@@ -303,8 +342,84 @@ public class NotionImportServiceImpl implements NotionImportService {
         String normalized = message.toLowerCase(Locale.ROOT);
         return normalized.contains("connection reset")
                 || normalized.contains("timed out")
+                || normalized.contains("timeout")
                 || normalized.contains("connection aborted")
-                || normalized.contains("broken pipe");
+                || normalized.contains("broken pipe")
+                || normalized.contains("connection refused")
+                || normalized.contains("unable to tunnel")
+                || normalized.contains("unexpected end of stream")
+                || normalized.contains("remote host terminated")
+                || normalized.contains("sslhandshakeexception");
+    }
+
+    private boolean isRetryableStatus(HttpStatus status) {
+        return status == HttpStatus.TOO_MANY_REQUESTS || status.is5xxServerError();
+    }
+
+    private BusinessException mapHttpStatusException(HttpStatusCodeException ex) {
+        HttpStatus status = ex.getStatusCode();
+
+        if (status == HttpStatus.UNAUTHORIZED) {
+            return new BusinessException("Notion Token 无效或未配置，请检查 NOTION_TOKEN 或 OAuth 授权", HttpStatus.BAD_REQUEST);
+        }
+        if (status == HttpStatus.FORBIDDEN) {
+            return new BusinessException("没有权限访问该页面，请确认已分享给 Integration 或 OAuth 授权", HttpStatus.BAD_REQUEST);
+        }
+        if (status == HttpStatus.NOT_FOUND) {
+            return new BusinessException("Notion 页面未找到，请确认链接正确且已分享给 Integration", HttpStatus.BAD_REQUEST);
+        }
+        if (status == HttpStatus.TOO_MANY_REQUESTS) {
+            return new BusinessException("Notion API 触发限流，请稍后重试", HttpStatus.BAD_GATEWAY);
+        }
+        if (status.is5xxServerError()) {
+            return new BusinessException("Notion API 服务暂时不可用，请稍后重试", HttpStatus.BAD_GATEWAY);
+        }
+
+        String body = trimToNull(ex.getResponseBodyAsString());
+        if (body != null) {
+            String compactBody = body.replaceAll("\\s+", " ");
+            if (compactBody.length() > 160) {
+                compactBody = compactBody.substring(0, 160);
+            }
+            return new BusinessException("Notion API 调用失败(" + status.value() + "): " + compactBody,
+                    HttpStatus.BAD_REQUEST);
+        }
+        return new BusinessException("Notion API 调用失败：" + status, HttpStatus.BAD_REQUEST);
+    }
+
+    private String buildNetworkFailureMessage(ResourceAccessException ex) {
+        String detail = null;
+        Throwable root = ex.getMostSpecificCause();
+        if (root != null && root.getMessage() != null) {
+            detail = root.getMessage().trim();
+        }
+        if ((detail == null || detail.isBlank()) && ex.getMessage() != null) {
+            detail = ex.getMessage().trim();
+        }
+        String normalized = detail == null ? "" : detail.toLowerCase(Locale.ROOT);
+
+        if (normalized.contains("pkix") || normalized.contains("certificate")
+                || normalized.contains("ssl") || normalized.contains("handshake")) {
+            return "Notion API TLS 握手失败，请检查代理证书或关闭 HTTPS 拦截";
+        }
+        if (normalized.contains("timed out") || normalized.contains("timeout")) {
+            return "Notion API 请求超时，请检查网络/代理后重试";
+        }
+        if (normalized.contains("unknownhost") || normalized.contains("name or service not known")) {
+            return "无法解析 Notion 域名，请检查 DNS 或代理配置";
+        }
+        if (normalized.contains("connection refused") || normalized.contains("unable to tunnel")) {
+            return "无法连接 Notion API，请检查代理是否可用";
+        }
+
+        if (detail != null && !detail.isBlank()) {
+            String compact = detail.replaceAll("\\s+", " ");
+            if (compact.length() > 120) {
+                compact = compact.substring(0, 120);
+            }
+            return "Notion API 请求失败: " + compact;
+        }
+        return "Notion API 请求失败，请检查网络、代理或 TLS 配置";
     }
 
     private long calculateBackoffMs(int attempt) {
@@ -862,3 +977,4 @@ public class NotionImportServiceImpl implements NotionImportService {
         }
     }
 }
+

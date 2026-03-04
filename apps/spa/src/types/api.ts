@@ -19,6 +19,7 @@ export interface ArticleSummary {
     title: string;
     slug: string;
     summary?: string;
+    coverPhotoId?: number | null;
     coverImage?: string;
     status: string;
     views: number;
@@ -51,6 +52,8 @@ export interface AuthUser {
     id: number;
     username: string;
     role: string;
+    enabled: boolean;
+    tabCodes: string[];
 }
 
 export interface AuthResponse {
@@ -209,6 +212,13 @@ export interface PendingAssetPhoto {
     fullAddress?: string;
 }
 
+export interface CoverMaterial {
+    photoId: number;
+    url: string;
+    uploadedAt?: string;
+    usedAsCover: boolean;
+}
+
 export type AssetPendingScope = 'ALL' | 'PENDING' | 'BOUND';
 
 export interface BindPendingToPlanRequest {
@@ -277,4 +287,34 @@ export interface AdminProfileResponse {
     username: string;
     role: string;
     email: string;
+}
+
+export interface AdminAccountSummary {
+    id: number;
+    username: string;
+    email: string;
+    role: string;
+    enabled: boolean;
+    createdAt?: string;
+    tabCodes: string[];
+}
+
+export interface AdminAccountPermissionOption {
+    code: string;
+    label: string;
+    description: string;
+}
+
+export interface AdminAccountCreateRequest {
+    username: string;
+    email: string;
+    password: string;
+    enabled: boolean;
+    tabCodes: string[];
+}
+
+export interface AdminAccountUpdateRequest {
+    email: string;
+    enabled: boolean;
+    tabCodes: string[];
 }

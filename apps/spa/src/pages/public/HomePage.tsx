@@ -14,6 +14,7 @@ import type { ApiResponse } from '../../lib/api'
 import type { ArticleSummary, Category, Tag as TagDto, PageResult } from '../../types/api'
 import { buildPostPath } from '../../lib/postPath'
 import { paperPatternStyle, paperThemeVars } from '../../lib/theme'
+import { resolveMediaUrl } from '../../lib/mediaUrl'
 import { getSiteConfig } from '../../config/siteConfig'
 
 const coverImageFor = (seed: number) =>
@@ -61,7 +62,9 @@ export default function HomePage() {
     const featuredPost = articles[0]
     const latestPosts = featuredPost ? articles.slice(1) : articles
     const spotlightPosts = latestPosts.slice(0, 3)
-    const featuredImage = featuredPost ? coverImageFor(featuredPost.id) : currentImage
+    const featuredImage = featuredPost
+        ? resolveMediaUrl(featuredPost.coverImage) || coverImageFor(featuredPost.id)
+        : currentImage
 
     const { data: categories = [] } = useQuery({
         queryKey: ['categories'],
@@ -392,7 +395,7 @@ export default function HomePage() {
                                         excerpt={post.summary}
                                         slug={post.slug}
                                         categorySlugPath={post.category?.slugPath}
-                                        coverImage={coverImageFor(post.id)}
+                                        coverImage={resolveMediaUrl(post.coverImage) || coverImageFor(post.id)}
                                         tags={post.tags?.map((t) => t.name)}
                                         publishDate={post.publishedAt}
                                         views={post.views}

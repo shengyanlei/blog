@@ -9,6 +9,7 @@ import { api, unwrapResponse } from '../../lib/api'
 import type { ApiResponse } from '../../lib/api'
 import type { ArticleSummary, Category, Tag as TagDto, PageResult } from '../../types/api'
 import { paperPatternStyle, paperThemeVars } from '../../lib/theme'
+import { resolveMediaUrl } from '../../lib/mediaUrl'
 
 const coverImageFor = (seed: number) =>
     `https://images.unsplash.com/photo-1482192596544-9eb780fc7f66?w=1400&q=80&auto=format&fit=crop&sig=${seed}`
@@ -185,7 +186,7 @@ export default function ArchivePage() {
                                     excerpt={post.summary}
                                     slug={post.slug}
                                     categorySlugPath={post.category?.slugPath}
-                                    coverImage={post.coverImage || coverImageFor(post.id)}
+                                    coverImage={resolveMediaUrl(post.coverImage) || coverImageFor(post.id)}
                                     tags={post.tags?.map((t) => t.name)}
                                     publishDate={post.publishedAt}
                                     views={post.views}

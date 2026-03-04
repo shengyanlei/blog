@@ -12,6 +12,15 @@ HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:8080/api/categories}"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-60}"
 HEALTH_INTERVAL_SECONDS="${HEALTH_INTERVAL_SECONDS:-2}"
 KEEP_RELEASES="${KEEP_RELEASES:-5}"
+RUN_DB_MIGRATIONS="${RUN_DB_MIGRATIONS:-false}"
+BACKEND_ENV_FILE="${BACKEND_ENV_FILE:-/etc/blog/blog-backend.env}"
+
+DB_MIGRATION_SCRIPTS=(
+  "prod-journey-schema.sql"
+  "prod-travel-plan-schema.sql"
+  "prod-location-address-schema.sql"
+  "prod-pending-asset-schema.sql"
+)
 
 log() {
   printf '[deploy][%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -86,6 +95,62 @@ cleanup_old_releases() {
   done
 }
 
+run_db_migrations() {
+  local scripts_dir="$1"
+  local jdbc_url=""
+  local db_user=""
+  local db_pass=""
+  local db_host=""
+  local db_port=""
+  local db_name=""
+  local script_name=""
+  local script_path=""
+
+  if [[ "${RUN_DB_MIGRATIONS}" != "true" ]]; then
+    log "Skipping DB migrations (set RUN_DB_MIGRATIONS=true to enable)."
+    return 0
+  fi
+
+  [[ -d "${scripts_dir}" ]] || fail "Migration scripts directory not found: ${scripts_dir}"
+
+  if [[ -f "${BACKEND_ENV_FILE}" ]]; then
+    # shellcheck disable=SC1090
+    source "${BACKEND_ENV_FILE}"
+  fi
+
+  jdbc_url="${SPRING_DATASOURCE_URL:-}"
+  db_user="${SPRING_DATASOURCE_USERNAME:-}"
+  db_pass="${SPRING_DATASOURCE_PASSWORD:-}"
+
+  [[ -n "${jdbc_url}" ]] || fail "SPRING_DATASOURCE_URL is empty; cannot run DB migrations."
+  [[ -n "${db_user}" ]] || fail "SPRING_DATASOURCE_USERNAME is empty; cannot run DB migrations."
+
+  if ! command -v mysql >/dev/null 2>&1; then
+    fail "mysql CLI is not installed; cannot run DB migrations."
+  fi
+
+  if [[ "${jdbc_url}" =~ ^jdbc:mysql://([^/:?]+)(:([0-9]+))?/([^?]+) ]]; then
+    db_host="${BASH_REMATCH[1]}"
+    db_port="${BASH_REMATCH[3]:-3306}"
+    db_name="${BASH_REMATCH[4]}"
+  else
+    fail "Unsupported SPRING_DATASOURCE_URL format: ${jdbc_url}"
+  fi
+
+  for script_name in "${DB_MIGRATION_SCRIPTS[@]}"; do
+    script_path="${scripts_dir}/${script_name}"
+    [[ -f "${script_path}" ]] || fail "Missing migration script: ${script_path}"
+    log "Applying DB migration: ${script_name}"
+    if [[ -n "${db_pass}" ]]; then
+      MYSQL_PWD="${db_pass}" mysql --default-character-set=utf8mb4 --host="${db_host}" --port="${db_port}" --user="${db_user}" "${db_name}" < "${script_path}"
+    else
+      mysql --default-character-set=utf8mb4 --host="${db_host}" --port="${db_port}" --user="${db_user}" "${db_name}" < "${script_path}"
+    fi
+  done
+
+  log "DB migrations completed."
+}
+
 if [[ $# -ne 1 ]]; then
   usage
   exit 2
@@ -122,6 +187,8 @@ if [[ ! -f "${SHARED_RUNTIME_DIR}/application.yml" ]]; then
   cp "${NEW_RELEASE_DIR}/frontend/dist/application.yml" "${SHARED_RUNTIME_DIR}/application.yml"
   log "Initialized shared runtime application.yml"
 fi
+
+run_db_migrations "${NEW_RELEASE_DIR}/backend/scripts"
 
 if [[ -L "${CURRENT_LINK}" ]]; then
   PREVIOUS_RELEASE_DIR="$(readlink -f "${CURRENT_LINK}")"
