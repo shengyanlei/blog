@@ -3,6 +3,7 @@ package com.blog.exception;
 import com.blog.common.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -132,6 +133,32 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ex.getStatusCode())
                 .body(ApiResponse.error(ex.getStatusText()));
+    }
+
+    /**
+     * 处理数据完整性异常（如字段长度超限）
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        String message = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+        String normalized = message == null ? "" : message.toLowerCase();
+
+        if (normalized.contains("data too long for column 'content'")) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("文章内容过长，超出当前数据库字段限制（content）。请升级 content 字段为 LONGTEXT。"));
+        }
+
+        if (normalized.contains("data too long")) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("提交内容过长，超出数据库字段限制。"));
+        }
+
+        log.error("Data integrity violation", ex);
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("数据保存失败，请检查字段长度和唯一性约束。"));
     }
 
     /**

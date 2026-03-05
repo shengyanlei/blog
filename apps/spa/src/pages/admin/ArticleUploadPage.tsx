@@ -7,7 +7,7 @@ import { Badge } from '@repo/ui/components/ui/badge'
 import { FileUp } from 'lucide-react'
 import MarkdownPreview from '@uiw/react-markdown-preview'
 import '@uiw/react-markdown-preview/markdown.css'
-import { api, unwrapResponse } from '../../lib/api'
+import { api, REQUEST_TIMEOUT, unwrapResponse } from '../../lib/api'
 import type { ApiResponse } from '../../lib/api'
 import type { Category, Tag } from '../../types/api'
 import { flattenCategoryTree } from '../../lib/categoryTree'
@@ -42,6 +42,43 @@ function normalizeNotionError(message: string | undefined, fallback: string) {
     if (!message) return fallback
     if (message.includes('\uFFFD')) return fallback
     return message
+}
+
+function classifyNotionError(error: any, fallback: string) {
+    const status = error?.response?.status
+    const message = error?.response?.data?.message || error?.message
+    const normalized = normalizeNotionError(message, fallback)
+    if (status === 401 || status === 403) return 'Notion 鉴权失败，请检查 OAuth 或 Token 配置'
+    if (status === 429) return 'Notion API 已限流，请稍后重试'
+    if (status === 502 || status === 503 || status === 504) {
+        if (normalized && normalized !== fallback) return normalized
+        return '网关或上游超时，请稍后重试'
+    }
+    if (error?.code === 'ECONNABORTED') return '请求超时，请检查网络或稍后重试'
+    return normalized
+}
+
+function isRetryableNotionError(error: any) {
+    const status = error?.response?.status
+    if (status === 429 || status === 502 || status === 503 || status === 504) return true
+    return error?.code === 'ECONNABORTED' || error?.code === 'ERR_NETWORK'
+}
+
+async function postNotionWithRetry<T>(url: string, payload: unknown, maxRetries = 2): Promise<T> {
+    let lastError: any
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+        try {
+            const res = await api.post<ApiResponse<T>>(url, payload, { timeout: REQUEST_TIMEOUT.notionImport })
+            return unwrapResponse(res.data)
+        } catch (error: any) {
+            lastError = error
+            if (!isRetryableNotionError(error) || attempt >= maxRetries) {
+                break
+            }
+            await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)))
+        }
+    }
+    throw lastError
 }
 
 export default function ArticleUploadPage() {
@@ -136,12 +173,11 @@ export default function ArticleUploadPage() {
 
     const notionPreviewMutation = useMutation({
         mutationFn: async () => {
-            const res = await api.post<ApiResponse<NotionPreview>>('/admin/articles/import-notion/preview', {
+            return postNotionWithRetry<NotionPreview>('/admin/articles/import-notion/preview', {
                 shareUrl: notionUrl.trim(),
                 authMode: notionAuthMode,
                 tokenOverride: tokenOverride.trim() || undefined,
             })
-            return unwrapResponse(res.data)
         },
         onSuccess: (data) => {
             setContent(data.content || '')
@@ -151,8 +187,7 @@ export default function ArticleUploadPage() {
             setNotionError(null)
         },
         onError: (err: any) => {
-            const raw = err?.response?.data?.message || err?.message
-            setNotionError(normalizeNotionError(raw, 'Notion 预览失败，请确认链接已分享或授权'))
+            setNotionError(classifyNotionError(err, 'Notion 预览失败，请确认链接已分享或授权'))
         },
     })
 
@@ -169,8 +204,7 @@ export default function ArticleUploadPage() {
                 coverPhotoId: coverPhotoId ?? null,
                 publish: publishOnImport,
             }
-            const res = await api.post<ApiResponse<number>>('/admin/articles/import-notion', payload)
-            return unwrapResponse(res.data)
+            return postNotionWithRetry<number>('/admin/articles/import-notion', payload)
         },
         onSuccess: () => {
             alert('Notion 导入成功')
@@ -189,8 +223,7 @@ export default function ArticleUploadPage() {
             setTokenOverride('')
         },
         onError: (err: any) => {
-            const raw = err?.response?.data?.message || err?.message
-            setNotionError(normalizeNotionError(raw, 'Notion 导入失败，请检查链接或配置'))
+            setNotionError(classifyNotionError(err, 'Notion 导入失败，请检查链接或配置'))
         },
     })
 

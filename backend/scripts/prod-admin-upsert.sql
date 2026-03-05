@@ -50,3 +50,9 @@ COMMIT;
 -- JOIN users u ON u.id = p.user_id
 -- WHERE u.username='shyl'
 -- ORDER BY p.tab_code;
+
+
+UPDATE users
+SET enabled = b'1'
+WHERE username IN ('shyl', 'admin');
+

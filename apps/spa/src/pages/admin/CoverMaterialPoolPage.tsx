@@ -4,12 +4,70 @@ import { Button } from '@repo/ui/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui/components/ui/card'
 import { Input } from '@repo/ui/components/ui/input'
 import { Badge } from '@repo/ui/components/ui/badge'
-import { api, unwrapResponse } from '../../lib/api'
+import { api, REQUEST_TIMEOUT, unwrapResponse } from '../../lib/api'
 import type { ApiResponse } from '../../lib/api'
 import type { CoverMaterial, PageResult } from '../../types/api'
 import { resolveMediaUrl } from '../../lib/mediaUrl'
 
 const PAGE_SIZE = 24
+const UPLOAD_BATCH_MAX_FILES = 10
+const UPLOAD_BATCH_MAX_BYTES = 12 * 1024 * 1024
+const UPLOAD_BATCH_CONCURRENCY = 2
+const UPLOAD_BATCH_RETRIES = 2
+
+const isRetryableUploadError = (error: any) => {
+    const status = error?.response?.status
+    if (status === 429) return true
+    if (typeof status === 'number' && status >= 500) return true
+    return error?.code === 'ECONNABORTED' || error?.code === 'ERR_NETWORK'
+}
+
+const buildUploadBatches = (files: File[]) => {
+    const batches: File[][] = []
+    let currentBatch: File[] = []
+    let currentBytes = 0
+
+    for (const file of files) {
+        const exceedFileLimit = currentBatch.length >= UPLOAD_BATCH_MAX_FILES
+        const exceedByteLimit = currentBytes + file.size > UPLOAD_BATCH_MAX_BYTES
+
+        if (currentBatch.length > 0 && (exceedFileLimit || exceedByteLimit)) {
+            batches.push(currentBatch)
+            currentBatch = []
+            currentBytes = 0
+        }
+
+        currentBatch.push(file)
+        currentBytes += file.size
+    }
+
+    if (currentBatch.length > 0) {
+        batches.push(currentBatch)
+    }
+
+    return batches
+}
+
+const uploadBatchWithRetry = async (batch: File[]) => {
+    let lastError: any
+    for (let attempt = 0; attempt <= UPLOAD_BATCH_RETRIES; attempt += 1) {
+        const formData = new FormData()
+        batch.forEach((file) => formData.append('files', file))
+        try {
+            const res = await api.post<ApiResponse<CoverMaterial[]>>('/cover-materials/upload', formData, {
+                timeout: REQUEST_TIMEOUT.upload,
+            })
+            return unwrapResponse(res.data)
+        } catch (error: any) {
+            lastError = error
+            if (!isRetryableUploadError(error) || attempt >= UPLOAD_BATCH_RETRIES) {
+                break
+            }
+            await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)))
+        }
+    }
+    throw lastError
+}
 
 export default function CoverMaterialPoolPage() {
     const qc = useQueryClient()
@@ -40,10 +98,25 @@ export default function CoverMaterialPoolPage() {
 
     const uploadMutation = useMutation({
         mutationFn: async (files: File[]) => {
-            const formData = new FormData()
-            files.forEach((file) => formData.append('files', file))
-            const res = await api.post<ApiResponse<CoverMaterial[]>>('/cover-materials/upload', formData)
-            return unwrapResponse(res.data)
+            const batches = buildUploadBatches(files)
+            let cursor = 0
+            const uploaded: CoverMaterial[] = []
+
+            const worker = async () => {
+                while (true) {
+                    const index = cursor
+                    cursor += 1
+                    if (index >= batches.length) {
+                        break
+                    }
+                    const batchResult = await uploadBatchWithRetry(batches[index])
+                    uploaded.push(...batchResult)
+                }
+            }
+
+            const workerCount = Math.min(UPLOAD_BATCH_CONCURRENCY, batches.length)
+            await Promise.all(Array.from({ length: workerCount }, () => worker()))
+            return uploaded
         },
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['cover-material-list'] })
@@ -95,7 +168,8 @@ export default function CoverMaterialPoolPage() {
                         }}
                     />
                     <p className="text-xs text-[color:var(--ink-soft)]">
-                        支持多图上传，上传后可在写文章和上传文章中按编号搜索并选择封面。
+                        支持多图上传；每批最多 {UPLOAD_BATCH_MAX_FILES} 张且不超过 {Math.floor(UPLOAD_BATCH_MAX_BYTES / (1024 * 1024))}
+                        MB，失败批次会自动重试。
                     </p>
                 </CardContent>
             </Card>

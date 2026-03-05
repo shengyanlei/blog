@@ -12,10 +12,16 @@ export interface ApiResponse<T> {
 const envApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
 export const API_BASE_URL = envApiBaseUrl || (import.meta.env.DEV ? 'http://localhost:8080/api' : '/api')
 export const API_HOST = API_BASE_URL.replace(/\/api$/, '')
+export const REQUEST_TIMEOUT = {
+    default: 15_000,
+    notionImport: 120_000,
+    upload: 180_000,
+} as const
 
 export const api = axios.create({
     baseURL: API_BASE_URL,
     withCredentials: true,
+    timeout: REQUEST_TIMEOUT.default,
 })
 
 api.interceptors.request.use((config) => {

@@ -10,10 +10,12 @@ import com.drew.imaging.ImageMetadataReader;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 import com.drew.metadata.exif.GpsDirectory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -29,6 +31,10 @@ import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,6 +43,22 @@ public class FootprintServiceImpl implements FootprintService {
     private final FootprintLocationRepository locationRepository;
     private final FootprintPhotoRepository photoRepository;
     private static final Logger log = LoggerFactory.getLogger(FootprintServiceImpl.class);
+    private static final AtomicInteger REVERSE_GEO_THREAD_COUNTER = new AtomicInteger(1);
+    private static final ThreadFactory REVERSE_GEO_THREAD_FACTORY = runnable -> {
+        Thread thread = new Thread(runnable, "reverse-geo-" + REVERSE_GEO_THREAD_COUNTER.getAndIncrement());
+        thread.setDaemon(true);
+        return thread;
+    };
+    private static final ExecutorService REVERSE_GEO_EXECUTOR = Executors.newFixedThreadPool(2, REVERSE_GEO_THREAD_FACTORY);
+
+    @Value("${footprint.reverse-geocode-async:true}")
+    private boolean reverseGeocodeAsync;
+
+    @Value("${footprint.reverse-geocode-connect-timeout-ms:1500}")
+    private int reverseGeoConnectTimeoutMs;
+
+    @Value("${footprint.reverse-geocode-read-timeout-ms:2500}")
+    private int reverseGeoReadTimeoutMs;
 
     public FootprintServiceImpl(FootprintLocationRepository locationRepository, FootprintPhotoRepository photoRepository) {
         this.locationRepository = locationRepository;
@@ -47,6 +69,8 @@ public class FootprintServiceImpl implements FootprintService {
         String province;
         String city;
         String shotAt;
+        Double latitude;
+        Double longitude;
     }
 
     @Override
@@ -115,11 +139,11 @@ public class FootprintServiceImpl implements FootprintService {
         FootprintLocation location = locationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Footprint not found"));
         if (request == null || request.getPhotos() == null || request.getPhotos().isEmpty()) {
-            throw new IllegalArgumentException("照片列表为空");
+            throw new IllegalArgumentException("Photo list cannot be empty");
         }
         try {
             addPhotosInternal(location, request.getPhotos());
-            // 先保存，再重新加载，确保计数和关联完整
+            // Save then reload to ensure relationship counts are computed from fresh entity state.
             locationRepository.save(location);
             FootprintLocation fresh = locationRepository.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Footprint not found"));
@@ -127,8 +151,8 @@ public class FootprintServiceImpl implements FootprintService {
             locationRepository.save(fresh);
             return toDetail(fresh);
         } catch (Exception e) {
-            log.error("添加照片失败, locationId={}", id, e);
-            throw new RuntimeException("保存照片失败: " + e.getMessage(), e);
+            log.error("Failed to add photos for locationId={}", id, e);
+            throw new RuntimeException("Failed to save photos: " + e.getMessage(), e);
         }
     }
 
@@ -152,13 +176,13 @@ public class FootprintServiceImpl implements FootprintService {
     @Transactional
     public PhotoDTO reassignPhoto(Long photoId, ReassignPhotoRequest request) {
         FootprintPhoto photo = photoRepository.findById(photoId)
-                .orElseThrow(() -> new IllegalArgumentException("照片不存在"));
+                .orElseThrow(() -> new IllegalArgumentException("Photo not found"));
         FootprintLocation oldLocation = photo.getLocation();
 
         String targetProvince = request.getProvince();
         String targetCity = request.getCity();
         if (targetProvince == null || targetCity == null) {
-            throw new IllegalArgumentException("省份/城市不能为空");
+            throw new IllegalArgumentException("Province and city cannot be blank");
         }
 
         FootprintLocation target = locationRepository.findByProvinceAndCity(targetProvince, targetCity)
@@ -172,14 +196,14 @@ public class FootprintServiceImpl implements FootprintService {
                     return locationRepository.save(loc);
                 });
 
-        // 解绑旧关联
+        // Unbind from old location.
         if (oldLocation != null) {
             oldLocation.getPhotos().removeIf(p -> Objects.equals(p.getId(), photoId));
             updateCounts(oldLocation);
             locationRepository.save(oldLocation);
         }
 
-        // 绑定新关联
+        // Bind to target location.
         photo.setLocation(target);
         target.getPhotos().add(photo);
         photoRepository.save(photo);
@@ -193,7 +217,7 @@ public class FootprintServiceImpl implements FootprintService {
     @Transactional
     public PhotoDTO updatePhotoNote(Long photoId, UpdatePhotoNoteRequest request) {
         FootprintPhoto photo = photoRepository.findById(photoId)
-                .orElseThrow(() -> new IllegalArgumentException("照片不存在"));
+                .orElseThrow(() -> new IllegalArgumentException("Photo not found"));
         if (request.getNote() != null) {
             photo.setNote(request.getNote());
         }
@@ -229,7 +253,7 @@ public class FootprintServiceImpl implements FootprintService {
     @Transactional
     public UploadPhotoResponse uploadAndParseLocation(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("文件不能为空");
+            throw new IllegalArgumentException("File must not be empty");
         }
         try {
             String ext = StringUtils.getFilenameExtension(file.getOriginalFilename());
@@ -247,12 +271,25 @@ public class FootprintServiceImpl implements FootprintService {
             try {
                 geo = extractLocation(file);
             } catch (Exception ex) {
-                // 元数据解析失败不应阻塞上传，降级为仅保存图片。
+                // EXIF/GPS parsing failure must not block upload success.
                 log.warn("Parse EXIF/GPS failed for uploaded image, fallback to raw upload. filename={}", filename, ex);
             }
-            return new UploadPhotoResponse(url, geo.province, geo.city, geo.shotAt);
+
+            UploadPhotoResponse response = new UploadPhotoResponse(url, null, null, geo.shotAt);
+            if (geo.latitude != null && geo.longitude != null) {
+                if (reverseGeocodeAsync) {
+                    scheduleReverseGeo(url, geo.latitude, geo.longitude);
+                } else {
+                    ReverseGeoResult resolved = reverseGeo(geo.latitude, geo.longitude);
+                    if (resolved != null) {
+                        response.setProvince(resolved.province);
+                        response.setCity(resolved.city);
+                    }
+                }
+            }
+            return response;
         } catch (Exception e) {
-            throw new RuntimeException("上传失败: " + e.getMessage(), e);
+            throw new RuntimeException("Upload failed: " + e.getMessage(), e);
         }
     }
 
@@ -274,7 +311,7 @@ public class FootprintServiceImpl implements FootprintService {
                 location.getPhotos().add(photo);
                 photoRepository.save(photo);
             } catch (Exception ex) {
-                log.error("保存单张照片失败, url={}", dto.getUrl(), ex);
+                log.error("Failed to save single photo url={}", dto.getUrl(), ex);
             }
         }
     }
@@ -338,23 +375,30 @@ public class FootprintServiceImpl implements FootprintService {
             }
             GpsDirectory gps = metadata.getFirstDirectoryOfType(GpsDirectory.class);
             if (gps != null && gps.getGeoLocation() != null) {
-                double lat = gps.getGeoLocation().getLatitude();
-                double lon = gps.getGeoLocation().getLongitude();
-                ReverseGeoResult geo = reverseGeo(lat, lon);
-                if (geo != null) {
-                    result.province = geo.province;
-                    result.city = geo.city;
-                }
+                result.latitude = gps.getGeoLocation().getLatitude();
+                result.longitude = gps.getGeoLocation().getLongitude();
             }
         } catch (Exception ignored) {
+            // EXIF parsing best effort only.
         }
         return result;
+    }
+
+    private void scheduleReverseGeo(String url, double lat, double lon) {
+        REVERSE_GEO_EXECUTOR.submit(() -> {
+            ReverseGeoResult geo = reverseGeo(lat, lon);
+            if (geo != null && (StringUtils.hasText(geo.province) || StringUtils.hasText(geo.city))) {
+                log.info("Async reverse geocode resolved for {} => province={}, city={}", url, geo.province, geo.city);
+            } else {
+                log.debug("Async reverse geocode skipped or failed for {}", url);
+            }
+        });
     }
 
     @SuppressWarnings("unchecked")
     private ReverseGeoResult reverseGeo(double lat, double lon) {
         try {
-            RestTemplate restTemplate = new RestTemplate();
+            RestTemplate restTemplate = createGeoRestTemplate();
             String url = "https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat + "&lon=" + lon + "&zoom=10&accept-language=zh-CN";
             HttpHeaders headers = new HttpHeaders();
             headers.add("User-Agent", "footprint-app/1.0");
@@ -370,7 +414,15 @@ public class FootprintServiceImpl implements FootprintService {
             r.city = address.getOrDefault("city", address.getOrDefault("county", address.getOrDefault("town", address.get("village"))));
             return r;
         } catch (Exception e) {
+            log.debug("Reverse geocode request failed: {}", e.getMessage());
             return null;
         }
+    }
+
+    private RestTemplate createGeoRestTemplate() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Math.max(500, reverseGeoConnectTimeoutMs));
+        requestFactory.setReadTimeout(Math.max(500, reverseGeoReadTimeoutMs));
+        return new RestTemplate(requestFactory);
     }
 }

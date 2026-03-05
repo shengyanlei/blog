@@ -12,6 +12,7 @@ import com.blog.repository.UserRepository;
 import com.blog.service.ArticleService;
 import com.blog.service.NotionImportService;
 import com.blog.service.notion.NotionAuthMode;
+import com.blog.service.notion.NotionHttpClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,19 +23,17 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestTemplate;
 
-import java.net.InetSocketAddress;
-import java.net.Proxy;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -60,6 +59,7 @@ public class NotionImportServiceImpl implements NotionImportService {
     private final ArticleRepository articleRepository;
     private final UserRepository userRepository;
     private final NotionConnectionRepository notionConnectionRepository;
+    private final NotionHttpClient notionHttpClient;
 
     @Value("${notion.token:}")
     private String notionToken;
@@ -70,44 +70,19 @@ public class NotionImportServiceImpl implements NotionImportService {
     @Value("${notion.publicImportEnabled:false}")
     private boolean publicImportEnabled;
 
-    @Value("${notion.connect-timeout-ms:15000}")
-    private int notionConnectTimeoutMs;
+    @Value("${notion.preview-cache-ttl-seconds:600}")
+    private long notionPreviewCacheTtlSeconds;
 
-    @Value("${notion.read-timeout-ms:30000}")
-    private int notionReadTimeoutMs;
+    @Value("${notion.preview-cache-max-entries:200}")
+    private int notionPreviewCacheMaxEntries;
 
-    @Value("${notion.max-retries:2}")
-    private int notionMaxRetries;
-
-    @Value("${notion.network-mode:DIRECT}")
-    private String notionNetworkMode;
-
-    @Value("${notion.proxy.host:}")
-    private String notionProxyHost;
-
-    @Value("${notion.proxy.port:0}")
-    private int notionProxyPort;
+    private final Object previewCacheLock = new Object();
+    private final Map<String, CachedPreview> previewCache = new LinkedHashMap<>(16, 0.75f, true);
 
     @Override
     public NotionImportPreviewResponse preview(NotionImportRequest request, String username) {
         try {
-            ImportContext context = resolveContext(request, username);
-            PageIds pageIds = extractPageIds(request.getShareUrl());
-
-            if (context.mode == NotionAuthMode.PUBLIC) {
-                JsonNode recordMap = fetchPublicRecordMap(pageIds.raw);
-                String title = extractPublicTitle(recordMap, pageIds);
-                String content = renderPublicBlocks(recordMap, pageIds);
-                String summary = generateSummary(content);
-                return new NotionImportPreviewResponse(title, summary, content);
-            }
-
-            JsonNode page = fetchPage(pageIds.uuid, context.token);
-            String title = extractTitleFromPage(page);
-            List<JsonNode> blocks = fetchBlocks(pageIds.uuid, context.token);
-            String content = renderBlocks(blocks, 0, context.token).trim();
-            String summary = generateSummary(content);
-            return new NotionImportPreviewResponse(title, summary, content);
+            return resolvePreview(request, username);
         } catch (BusinessException ex) {
             throw ex;
         } catch (Throwable ex) {
@@ -118,7 +93,7 @@ public class NotionImportServiceImpl implements NotionImportService {
 
     @Override
     public Long importFromShareUrl(NotionImportRequest request, String username) {
-        NotionImportPreviewResponse preview = preview(request, username);
+        NotionImportPreviewResponse preview = resolvePreview(request, username);
 
         String title = trimToNull(request.getTitleOverride());
         String summary = trimToNull(request.getSummaryOverride());
@@ -148,6 +123,76 @@ public class NotionImportServiceImpl implements NotionImportService {
         }
 
         return articleId;
+    }
+
+    private NotionImportPreviewResponse resolvePreview(NotionImportRequest request, String username) {
+        ImportContext context = resolveContext(request, username);
+        PageIds pageIds = extractPageIds(request.getShareUrl());
+
+        String cacheKey = buildPreviewCacheKey(username, request.getShareUrl(), context, pageIds);
+        NotionImportPreviewResponse cached = readPreviewCache(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        NotionImportPreviewResponse resolved;
+        try {
+            resolved = fetchPreviewFromNotion(context, pageIds);
+        } catch (BusinessException ex) {
+            NotionImportPreviewResponse fallback = tryAutoPublicFallback(request, pageIds, ex);
+            if (fallback == null) {
+                throw ex;
+            }
+            resolved = fallback;
+        }
+        writePreviewCache(cacheKey, resolved);
+        return resolved;
+    }
+
+    private NotionImportPreviewResponse tryAutoPublicFallback(NotionImportRequest request, PageIds pageIds, BusinessException cause) {
+        NotionAuthMode requestMode = NotionAuthMode.from(request == null ? null : request.getAuthMode());
+        if (requestMode != NotionAuthMode.AUTO) {
+            return null;
+        }
+
+        String message = trimToNull(cause == null ? null : cause.getMessage());
+        if (message == null) {
+            return null;
+        }
+
+        boolean canFallback = message.contains("Notion 页面未找到")
+                || message.contains("没有权限访问该页面")
+                || message.contains("Notion Token 无效");
+        if (!canFallback) {
+            return null;
+        }
+
+        try {
+            NotionImportPreviewResponse preview = fetchPreviewFromNotion(new ImportContext(NotionAuthMode.PUBLIC, null), pageIds);
+            log.info("Notion AUTO fallback to PUBLIC import succeeded for page {}", pageIds.uuid);
+            return preview;
+        } catch (Exception fallbackException) {
+            log.warn("Notion AUTO fallback to PUBLIC import failed for page {}: {}",
+                    pageIds.uuid, fallbackException.getMessage());
+            return null;
+        }
+    }
+
+    private NotionImportPreviewResponse fetchPreviewFromNotion(ImportContext context, PageIds pageIds) {
+        if (context.mode == NotionAuthMode.PUBLIC) {
+            JsonNode recordMap = fetchPublicRecordMap(pageIds.raw);
+            String title = extractPublicTitle(recordMap, pageIds);
+            String content = renderPublicBlocks(recordMap, pageIds);
+            String summary = generateSummary(content);
+            return new NotionImportPreviewResponse(title, summary, content);
+        }
+
+        JsonNode page = fetchPage(pageIds.uuid, context.token);
+        String title = extractTitleFromPage(page);
+        List<JsonNode> blocks = fetchBlocks(pageIds.uuid, context.token);
+        String content = renderBlocks(blocks, 0, context.token).trim();
+        String summary = generateSummary(content);
+        return new NotionImportPreviewResponse(title, summary, content);
     }
 
     private ImportContext resolveContext(NotionImportRequest request, String username) {
@@ -263,97 +308,12 @@ public class NotionImportServiceImpl implements NotionImportService {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         HttpEntity<Object> entity = new HttpEntity<>(body, headers);
-        RestTemplate restTemplate = createRestTemplate();
-        int maxAttempts = Math.max(1, notionMaxRetries + 1);
-
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            try {
-                return restTemplate.exchange(url, method, entity, JsonNode.class);
-            } catch (HttpStatusCodeException ex) {
-                HttpStatus status = ex.getStatusCode();
-                boolean canRetry = attempt < maxAttempts && isRetryableStatus(status);
-                if (canRetry) {
-                    long backoffMs = calculateBackoffMs(attempt);
-                    log.warn("Notion API transient HTTP status {} (attempt {}/{}). Retrying in {}ms",
-                            status, attempt, maxAttempts, backoffMs);
-                    sleepQuietly(backoffMs);
-                    continue;
-                }
-
-                log.error("Notion API request failed with status {} after {} attempt(s): {} {}",
-                        status, attempt, method, url, ex);
-                throw mapHttpStatusException(ex);
-            } catch (ResourceAccessException ex) {
-                boolean canRetry = attempt < maxAttempts && isRetryableNetworkError(ex);
-                if (canRetry) {
-                    long backoffMs = calculateBackoffMs(attempt);
-                    log.warn("Notion API transient network error (attempt {}/{}): {}. Retrying in {}ms",
-                            attempt, maxAttempts, ex.getMessage(), backoffMs);
-                    sleepQuietly(backoffMs);
-                    continue;
-                }
-
-                log.error("Notion API network request failed after {} attempt(s): {} {}", attempt, method, url, ex);
-                throw new BusinessException(buildNetworkFailureMessage(ex), HttpStatus.BAD_GATEWAY);
-            } catch (BusinessException ex) {
-                throw ex;
-            } catch (Exception ex) {
-                log.error("Notion API request failed unexpectedly: {} {}", method, url, ex);
-                throw new BusinessException("Notion API 请求失败，请稍后重试", HttpStatus.BAD_GATEWAY);
-            }
+        try {
+            return notionHttpClient.exchange("Notion API", url, method, entity, JsonNode.class);
+        } catch (HttpStatusCodeException ex) {
+            log.error("Notion API request failed: {} {}", method, url, ex);
+            throw mapHttpStatusException(ex);
         }
-
-        throw new BusinessException("Notion API 请求失败，请稍后重试", HttpStatus.BAD_GATEWAY);
-    }
-
-    private RestTemplate createRestTemplate() {
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(Math.max(1000, notionConnectTimeoutMs));
-        requestFactory.setReadTimeout(Math.max(1000, notionReadTimeoutMs));
-        configureProxy(requestFactory);
-        return new RestTemplate(requestFactory);
-    }
-
-    private void configureProxy(SimpleClientHttpRequestFactory requestFactory) {
-        String mode = notionNetworkMode == null ? "DIRECT" : notionNetworkMode.trim().toUpperCase(Locale.ROOT);
-        switch (mode) {
-            case "DIRECT":
-                requestFactory.setProxy(Proxy.NO_PROXY);
-                return;
-            case "CUSTOM":
-                if (StringUtils.hasText(notionProxyHost) && notionProxyPort > 0) {
-                    Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(notionProxyHost.trim(), notionProxyPort));
-                    requestFactory.setProxy(proxy);
-                } else {
-                    log.warn("Notion network mode CUSTOM is configured but notion.proxy.host/port is invalid. Falling back to AUTO");
-                }
-                return;
-            case "AUTO":
-            default:
-                return;
-        }
-    }
-
-    private boolean isRetryableNetworkError(ResourceAccessException ex) {
-        String message = ex.getMessage();
-        if (message == null) {
-            return true;
-        }
-        String normalized = message.toLowerCase(Locale.ROOT);
-        return normalized.contains("connection reset")
-                || normalized.contains("timed out")
-                || normalized.contains("timeout")
-                || normalized.contains("connection aborted")
-                || normalized.contains("broken pipe")
-                || normalized.contains("connection refused")
-                || normalized.contains("unable to tunnel")
-                || normalized.contains("unexpected end of stream")
-                || normalized.contains("remote host terminated")
-                || normalized.contains("sslhandshakeexception");
-    }
-
-    private boolean isRetryableStatus(HttpStatus status) {
-        return status == HttpStatus.TOO_MANY_REQUESTS || status.is5xxServerError();
     }
 
     private BusinessException mapHttpStatusException(HttpStatusCodeException ex) {
@@ -384,56 +344,7 @@ public class NotionImportServiceImpl implements NotionImportService {
             return new BusinessException("Notion API 调用失败(" + status.value() + "): " + compactBody,
                     HttpStatus.BAD_REQUEST);
         }
-        return new BusinessException("Notion API 调用失败：" + status, HttpStatus.BAD_REQUEST);
-    }
-
-    private String buildNetworkFailureMessage(ResourceAccessException ex) {
-        String detail = null;
-        Throwable root = ex.getMostSpecificCause();
-        if (root != null && root.getMessage() != null) {
-            detail = root.getMessage().trim();
-        }
-        if ((detail == null || detail.isBlank()) && ex.getMessage() != null) {
-            detail = ex.getMessage().trim();
-        }
-        String normalized = detail == null ? "" : detail.toLowerCase(Locale.ROOT);
-
-        if (normalized.contains("pkix") || normalized.contains("certificate")
-                || normalized.contains("ssl") || normalized.contains("handshake")) {
-            return "Notion API TLS 握手失败，请检查代理证书或关闭 HTTPS 拦截";
-        }
-        if (normalized.contains("timed out") || normalized.contains("timeout")) {
-            return "Notion API 请求超时，请检查网络/代理后重试";
-        }
-        if (normalized.contains("unknownhost") || normalized.contains("name or service not known")) {
-            return "无法解析 Notion 域名，请检查 DNS 或代理配置";
-        }
-        if (normalized.contains("connection refused") || normalized.contains("unable to tunnel")) {
-            return "无法连接 Notion API，请检查代理是否可用";
-        }
-
-        if (detail != null && !detail.isBlank()) {
-            String compact = detail.replaceAll("\\s+", " ");
-            if (compact.length() > 120) {
-                compact = compact.substring(0, 120);
-            }
-            return "Notion API 请求失败: " + compact;
-        }
-        return "Notion API 请求失败，请检查网络、代理或 TLS 配置";
-    }
-
-    private long calculateBackoffMs(int attempt) {
-        long base = 300L;
-        long delay = base * (1L << Math.max(0, attempt - 1));
-        return Math.min(delay, 2000L);
-    }
-
-    private void sleepQuietly(long milliseconds) {
-        try {
-            Thread.sleep(milliseconds);
-        } catch (InterruptedException interruptedException) {
-            Thread.currentThread().interrupt();
-        }
+        return new BusinessException("Notion API 调用失败: " + status, HttpStatus.BAD_REQUEST);
     }
 
     private JsonNode fetchPublicRecordMap(String rawPageId) {
@@ -448,10 +359,12 @@ public class NotionImportServiceImpl implements NotionImportService {
                     "chunkLimit", 100,
                     "verticalColumns", false
             );
-            RestTemplate restTemplate = new RestTemplate();
-            ResponseEntity<JsonNode> response = restTemplate.postForEntity(
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+            ResponseEntity<JsonNode> response = notionHttpClient.exchange(
+                    "Notion Public API",
                     NOTION_PUBLIC_API,
-                    new HttpEntity<>(payload, headers),
+                    HttpMethod.POST,
+                    entity,
                     JsonNode.class
             );
             if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
@@ -463,7 +376,7 @@ public class NotionImportServiceImpl implements NotionImportService {
             }
             return recordMap;
         } catch (HttpClientErrorException e) {
-            throw new BusinessException("公开页面导入失败：" + e.getStatusCode());
+            throw new BusinessException("公开页面导入失败: " + e.getStatusCode());
         }
     }
 
@@ -489,10 +402,15 @@ public class NotionImportServiceImpl implements NotionImportService {
 
     private String renderBlocks(List<JsonNode> blocks, int indentLevel, String token) {
         StringBuilder builder = new StringBuilder();
+        String previousType = null;
         for (JsonNode block : blocks) {
             String type = block.path("type").asText("");
             boolean hasChildren = block.path("has_children").asBoolean(false);
             String blockId = block.path("id").asText("");
+
+            if (shouldInsertListBoundaryNewline(previousType, type, builder)) {
+                builder.append("\n");
+            }
 
             switch (type) {
                 case "paragraph":
@@ -546,6 +464,7 @@ public class NotionImportServiceImpl implements NotionImportService {
                     }
                 }
             }
+            previousType = type;
         }
         return builder.toString();
     }
@@ -564,11 +483,17 @@ public class NotionImportServiceImpl implements NotionImportService {
         }
 
         StringBuilder builder = new StringBuilder();
+        String previousTopLevelType = null;
         JsonNode content = root.path("content");
         if (content.isArray()) {
             for (JsonNode childIdNode : content) {
                 String childId = childIdNode.asText();
+                String currentType = blockMap.path(childId).path("value").path("type").asText("");
+                if (shouldInsertListBoundaryNewline(previousTopLevelType, currentType, builder)) {
+                    builder.append("\n");
+                }
                 appendPublicBlock(builder, blockMap, childId, 0);
+                previousTopLevelType = currentType;
             }
         }
         return builder.toString().trim();
@@ -707,7 +632,7 @@ public class NotionImportServiceImpl implements NotionImportService {
             if (!part.isArray() || part.size() == 0) {
                 continue;
             }
-            String text = part.get(0).asText("");
+            String text = normalizeSoftLineBreaks(part.get(0).asText(""));
             String formatted = text;
 
             if (part.size() > 1 && part.get(1).isArray()) {
@@ -833,7 +758,7 @@ public class NotionImportServiceImpl implements NotionImportService {
         }
         StringBuilder builder = new StringBuilder();
         for (JsonNode node : richText) {
-            String text = node.path("plain_text").asText("");
+            String text = normalizeSoftLineBreaks(node.path("plain_text").asText(""));
             JsonNode annotations = node.path("annotations");
 
             boolean code = annotations.path("code").asBoolean(false);
@@ -867,6 +792,14 @@ public class NotionImportServiceImpl implements NotionImportService {
             builder.append(formatted);
         }
         return builder.toString();
+    }
+
+    private String normalizeSoftLineBreaks(String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        String normalized = text.replace("\r\n", "\n").replace('\r', '\n');
+        return normalized.replace("\n", "  \n");
     }
 
     private String renderPlainText(JsonNode richText) {
@@ -904,6 +837,28 @@ public class NotionImportServiceImpl implements NotionImportService {
 
     private boolean isListType(String type) {
         return "bulleted_list_item".equals(type) || "numbered_list_item".equals(type) || "to_do".equals(type);
+    }
+
+    private boolean isPublicListType(String type) {
+        return "bulleted_list".equals(type) || "numbered_list".equals(type) || "to_do".equals(type);
+    }
+
+    private boolean isListLikeType(String type) {
+        return isListType(type) || isPublicListType(type);
+    }
+
+    private boolean shouldInsertListBoundaryNewline(String previousType, String currentType, StringBuilder builder) {
+        if (!isListLikeType(previousType) || isListLikeType(currentType)) {
+            return false;
+        }
+        int len = builder.length();
+        if (len == 0) {
+            return false;
+        }
+        if (builder.charAt(len - 1) != '\n') {
+            return true;
+        }
+        return len < 2 || builder.charAt(len - 2) != '\n';
     }
 
     private String indent(int level) {
@@ -957,6 +912,87 @@ public class NotionImportServiceImpl implements NotionImportService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    private String buildPreviewCacheKey(String username, String shareUrl, ImportContext context, PageIds pageIds) {
+        String user = trimToNull(username);
+        String normalizedUrl = shareUrl == null ? "" : shareUrl.trim().toLowerCase(Locale.ROOT);
+        String tokenFingerprint = fingerprintToken(context.token);
+        String version = trimToNull(notionVersion);
+        return String.join("|",
+                user == null ? "-" : user,
+                pageIds.uuid,
+                context.mode.name(),
+                version == null ? "-" : version,
+                tokenFingerprint,
+                normalizedUrl);
+    }
+
+    private String fingerprintToken(String token) {
+        if (!StringUtils.hasText(token)) {
+            return "-";
+        }
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashed = digest.digest(token.trim().getBytes(StandardCharsets.UTF_8));
+            String encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(hashed);
+            return encoded.substring(0, Math.min(16, encoded.length()));
+        } catch (Exception ex) {
+            return "hash-fallback";
+        }
+    }
+
+    private NotionImportPreviewResponse readPreviewCache(String key) {
+        if (!isPreviewCacheEnabled()) {
+            return null;
+        }
+        long now = System.currentTimeMillis();
+        synchronized (previewCacheLock) {
+            CachedPreview cached = previewCache.get(key);
+            if (cached == null) {
+                return null;
+            }
+            if (cached.expireAtMillis <= now) {
+                previewCache.remove(key);
+                return null;
+            }
+            return copyPreview(cached.preview);
+        }
+    }
+
+    private void writePreviewCache(String key, NotionImportPreviewResponse preview) {
+        if (!isPreviewCacheEnabled() || preview == null) {
+            return;
+        }
+        long ttlMillis = Math.max(1L, notionPreviewCacheTtlSeconds) * 1000L;
+        long expireAt = System.currentTimeMillis() + ttlMillis;
+        synchronized (previewCacheLock) {
+            previewCache.put(key, new CachedPreview(copyPreview(preview), expireAt));
+            evictPreviewCacheLocked();
+        }
+    }
+
+    private void evictPreviewCacheLocked() {
+        long now = System.currentTimeMillis();
+        previewCache.entrySet().removeIf(entry -> entry.getValue().expireAtMillis <= now);
+
+        int maxEntries = Math.max(1, notionPreviewCacheMaxEntries);
+        while (previewCache.size() > maxEntries) {
+            Iterator<Map.Entry<String, CachedPreview>> iterator = previewCache.entrySet().iterator();
+            if (!iterator.hasNext()) {
+                return;
+            }
+            iterator.next();
+            iterator.remove();
+        }
+    }
+
+    private boolean isPreviewCacheEnabled() {
+        return notionPreviewCacheTtlSeconds > 0 && notionPreviewCacheMaxEntries > 0;
+    }
+
+    private NotionImportPreviewResponse copyPreview(NotionImportPreviewResponse source) {
+        return new NotionImportPreviewResponse(source.getTitle(), source.getSummary(), source.getContent());
+    }
+
     private static class ImportContext {
         private final NotionAuthMode mode;
         private final String token;
@@ -976,5 +1012,16 @@ public class NotionImportServiceImpl implements NotionImportService {
             this.raw = raw;
         }
     }
+
+    private static class CachedPreview {
+        private final NotionImportPreviewResponse preview;
+        private final long expireAtMillis;
+
+        private CachedPreview(NotionImportPreviewResponse preview, long expireAtMillis) {
+            this.preview = preview;
+            this.expireAtMillis = expireAtMillis;
+        }
+    }
 }
+
 

@@ -200,6 +200,10 @@ public class ArticleServiceImpl implements ArticleService {
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Article not found"));
 
+        if ("PUBLISHED".equalsIgnoreCase(article.getStatus())) {
+            throw new BusinessException("已发布文章不允许删除，请先取消发布", HttpStatus.CONFLICT);
+        }
+
         // 清理评论
         commentRepository.deleteByArticleId(id);
         // 清理标签关联

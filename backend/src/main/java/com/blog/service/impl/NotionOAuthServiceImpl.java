@@ -9,6 +9,7 @@ import com.blog.exception.BusinessException;
 import com.blog.repository.NotionConnectionRepository;
 import com.blog.repository.UserRepository;
 import com.blog.service.NotionOAuthService;
+import com.blog.service.notion.NotionHttpClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -16,12 +17,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.HttpStatusCodeException;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -49,6 +50,7 @@ public class NotionOAuthServiceImpl implements NotionOAuthService {
 
     private final UserRepository userRepository;
     private final NotionConnectionRepository notionConnectionRepository;
+    private final NotionHttpClient notionHttpClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${notion.oauth.client-id:}")
@@ -112,9 +114,10 @@ public class NotionOAuthServiceImpl implements NotionOAuthService {
                     "redirect_uri", resolvedRedirectUri
             );
 
-            RestTemplate restTemplate = new RestTemplate();
-            ResponseEntity<Map> response = restTemplate.postForEntity(
+            ResponseEntity<Map> response = notionHttpClient.exchange(
+                    "Notion OAuth Token",
                     NOTION_OAUTH_TOKEN,
+                    HttpMethod.POST,
                     new HttpEntity<>(payload, headers),
                     Map.class
             );
@@ -148,7 +151,7 @@ public class NotionOAuthServiceImpl implements NotionOAuthService {
 
             notionConnectionRepository.save(connection);
             return new NotionOAuthExchangeResponse(successRedirect);
-        } catch (HttpClientErrorException ex) {
+        } catch (HttpStatusCodeException ex) {
             String detail = parseNotionErrorMessage(ex);
             log.error("Notion OAuth error {}: {}", ex.getStatusCode(), detail);
             throw new BusinessException("Notion OAuth authorization failed: " + detail);
@@ -312,7 +315,7 @@ public class NotionOAuthServiceImpl implements NotionOAuthService {
         }
     }
 
-    private String parseNotionErrorMessage(HttpClientErrorException ex) {
+    private String parseNotionErrorMessage(HttpStatusCodeException ex) {
         String body = ex.getResponseBodyAsString();
         if (StringUtils.hasText(body)) {
             try {

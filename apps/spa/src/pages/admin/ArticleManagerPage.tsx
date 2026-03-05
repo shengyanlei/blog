@@ -45,8 +45,8 @@ export default function ArticleManagerPage() {
         onSuccess: () => {
             articlesQuery.refetch()
         },
-        onError: () => {
-            alert('删除文章失败，请稍后重试')
+        onError: (error: any) => {
+            alert(error?.response?.data?.message || '删除文章失败，请稍后重试')
         },
     })
 
@@ -149,7 +149,16 @@ export default function ArticleManagerPage() {
                                                 size="icon"
                                                 variant="ghost"
                                                 className="text-[color:var(--ink-soft)] hover:text-[#b91c1c]"
-                                                onClick={() => deleteMutation.mutate(article.id)}
+                                                onClick={() => {
+                                                    if (article.status === 'PUBLISHED') {
+                                                        alert('已发布文章不允许删除，请先取消发布')
+                                                        return
+                                                    }
+                                                    if (!confirm(`确认删除文章《${article.title}》吗？`)) return
+                                                    deleteMutation.mutate(article.id)
+                                                }}
+                                                disabled={article.status === 'PUBLISHED'}
+                                                title={article.status === 'PUBLISHED' ? '请先取消发布后再删除' : '删除文章'}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>

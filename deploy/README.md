@@ -250,3 +250,41 @@ Notes:
 - Requires `mysql` client on server.
 - Reads DB connection from `SPRING_DATASOURCE_*` in backend env file.
 - SQL scripts are idempotent and safe for repeated deploys.
+
+## 11. Notion + Upload Network Hardening (2026-03)
+
+Add these variables to `/etc/blog/blog-backend.env` for stable Notion import and upload behavior:
+
+```bash
+NOTION_NETWORK_MODE=AUTO
+NOTION_CONNECT_TIMEOUT_MS=5000
+NOTION_READ_TIMEOUT_MS=45000
+NOTION_MAX_RETRIES=3
+NOTION_PREVIEW_CACHE_TTL_SECONDS=600
+NOTION_PREVIEW_CACHE_MAX_ENTRIES=200
+
+FOOTPRINT_REVERSE_GEO_ASYNC=true
+FOOTPRINT_REVERSE_GEO_CONNECT_TIMEOUT_MS=1500
+FOOTPRINT_REVERSE_GEO_READ_TIMEOUT_MS=2500
+
+# Optional proxy for outbound HTTPS (only if required)
+# HTTPS_PROXY=http://127.0.0.1:7890
+# HTTP_PROXY=http://127.0.0.1:7890
+```
+
+For Nginx, keep upload size and increase upstream timeout for long-running Notion imports:
+
+```nginx
+client_max_body_size 50m;
+
+location /api/ {
+    proxy_pass http://127.0.0.1:8080/api/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_connect_timeout 15s;
+    proxy_send_timeout 300s;
+    proxy_read_timeout 300s;
+}
+```

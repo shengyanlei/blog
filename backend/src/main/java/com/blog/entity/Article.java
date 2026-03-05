@@ -33,7 +33,7 @@ public class Article {
     private String slug;
 
     @NotBlank(message = "内容不能为空")
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String content;
 
     @Column(length = 500)

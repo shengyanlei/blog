@@ -49,10 +49,12 @@ notion:
   token: ${NOTION_TOKEN:}
   version: ${NOTION_VERSION:2025-09-03}
   publicImportEnabled: ${NOTION_PUBLIC_IMPORT_ENABLED:false}
-  connect-timeout-ms: ${NOTION_CONNECT_TIMEOUT_MS:15000}
-  read-timeout-ms: ${NOTION_READ_TIMEOUT_MS:30000}
-  max-retries: ${NOTION_MAX_RETRIES:2}
-  network-mode: ${NOTION_NETWORK_MODE:DIRECT}
+  connect-timeout-ms: ${NOTION_CONNECT_TIMEOUT_MS:5000}
+  read-timeout-ms: ${NOTION_READ_TIMEOUT_MS:45000}
+  max-retries: ${NOTION_MAX_RETRIES:3}
+  network-mode: ${NOTION_NETWORK_MODE:AUTO}
+  preview-cache-ttl-seconds: ${NOTION_PREVIEW_CACHE_TTL_SECONDS:600}
+  preview-cache-max-entries: ${NOTION_PREVIEW_CACHE_MAX_ENTRIES:200}
   proxy:
     host: ${NOTION_PROXY_HOST:}
     port: ${NOTION_PROXY_PORT:0}
@@ -61,3 +63,8 @@ notion:
     client-secret: ${NOTION_OAUTH_CLIENT_SECRET:}
     redirect-uri: ${NOTION_OAUTH_REDIRECT_URI:}
     success-redirect: ${NOTION_OAUTH_SUCCESS_REDIRECT:/admin/upload}
+
+footprint:
+  reverse-geocode-async: ${FOOTPRINT_REVERSE_GEO_ASYNC:true}
+  reverse-geocode-connect-timeout-ms: ${FOOTPRINT_REVERSE_GEO_CONNECT_TIMEOUT_MS:1500}
+  reverse-geocode-read-timeout-ms: ${FOOTPRINT_REVERSE_GEO_READ_TIMEOUT_MS:2500}

@@ -4,7 +4,7 @@ import { Badge } from '@repo/ui/components/ui/badge'
 import { Button } from '@repo/ui/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui/components/ui/card'
 import { Input } from '@repo/ui/components/ui/input'
-import { api, API_HOST, unwrapResponse } from '../../lib/api'
+import { api, API_HOST, REQUEST_TIMEOUT, unwrapResponse } from '../../lib/api'
 import { CHINA_COUNTRY, CHINA_PROVINCE_CITY_OPTIONS, CHINA_PROVINCES } from '../../constants/china-address'
 import type {
     AssetPendingScope,
@@ -104,8 +104,10 @@ const toMediaUrl = (url?: string) => {
 }
 
 const PENDING_PAGE_SIZE = 24
-const UPLOAD_BATCH_SIZE = 10
+const UPLOAD_BATCH_MAX_FILES = 10
+const UPLOAD_BATCH_MAX_BYTES = 12 * 1024 * 1024
 const UPLOAD_BATCH_CONCURRENCY = 2
+const UPLOAD_BATCH_RETRIES = 2
 const UPLOAD_FILE_LIMIT = 50
 
 type HasShotAtFilter = 'all' | 'yes' | 'no'
@@ -126,6 +128,13 @@ const extractErrorMessage = (error: any) => {
         return message.trim()
     }
     return '操作失败，请稍后重试'
+}
+
+const isRetryableUploadError = (error: any) => {
+    const status = error?.response?.status
+    if (status === 429) return true
+    if (typeof status === 'number' && status >= 500) return true
+    return error?.code === 'ECONNABORTED' || error?.code === 'ERR_NETWORK'
 }
 
 export default function FootprintManagerPage({ mode = 'footprints' }: { mode?: FootprintManagerMode }) {
@@ -604,13 +613,38 @@ export default function FootprintManagerPage({ mode = 'footprints' }: { mode?: F
         )
     }
 
+    const buildUploadBatches = (jobs: UploadJobState[]) => {
+        const candidates = jobs.filter((item) => !!item.file)
+        const batches: UploadJobState[][] = []
+        let currentBatch: UploadJobState[] = []
+        let currentBatchBytes = 0
+
+        for (const item of candidates) {
+            const fileSize = item.file?.size ?? 0
+            const exceedFileLimit = currentBatch.length >= UPLOAD_BATCH_MAX_FILES
+            const exceedByteLimit = currentBatchBytes + fileSize > UPLOAD_BATCH_MAX_BYTES
+
+            if (currentBatch.length > 0 && (exceedFileLimit || exceedByteLimit)) {
+                batches.push(currentBatch)
+                currentBatch = []
+                currentBatchBytes = 0
+            }
+
+            currentBatch.push(item)
+            currentBatchBytes += fileSize
+        }
+
+        if (currentBatch.length > 0) {
+            batches.push(currentBatch)
+        }
+
+        return batches
+    }
+
     const runUploadJobs = async (jobs: UploadJobState[]) => {
         if (!jobs.length) return { successCount: 0, failedCount: 0 }
 
-        const batches: UploadJobState[][] = []
-        for (let i = 0; i < jobs.length; i += UPLOAD_BATCH_SIZE) {
-            batches.push(jobs.slice(i, i + UPLOAD_BATCH_SIZE))
-        }
+        const batches = buildUploadBatches(jobs)
 
         let cursor = 0
         let successCount = 0
@@ -627,20 +661,34 @@ export default function FootprintManagerPage({ mode = 'footprints' }: { mode?: F
                 const ids = batch.map((item) => item.localId)
                 patchUploadJobs(ids, { status: 'uploading', error: undefined })
 
-                const formData = new FormData()
-                batch.forEach((item) => {
-                    if (item.file) {
-                        formData.append('files', item.file)
-                    }
-                })
+                let batchError: any = null
+                for (let attempt = 0; attempt <= UPLOAD_BATCH_RETRIES; attempt += 1) {
+                    const formData = new FormData()
+                    batch.forEach((item) => {
+                        if (item.file) {
+                            formData.append('files', item.file)
+                        }
+                    })
 
-                try {
-                    await api.post('/materials/upload', formData)
+                    try {
+                        await api.post('/materials/upload', formData, { timeout: REQUEST_TIMEOUT.upload })
+                        batchError = null
+                        break
+                    } catch (error: any) {
+                        batchError = error
+                        if (!isRetryableUploadError(error) || attempt >= UPLOAD_BATCH_RETRIES) {
+                            break
+                        }
+                        await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)))
+                    }
+                }
+
+                if (!batchError) {
                     successCount += batch.length
                     patchUploadJobs(ids, { status: 'success', error: undefined })
-                } catch (error: any) {
+                } else {
                     failedCount += batch.length
-                    const message = extractErrorMessage(error)
+                    const message = extractErrorMessage(batchError)
                     setAssetUploadJobs((prev) =>
                         prev.map((item) =>
                             ids.includes(item.localId)
@@ -1333,7 +1381,8 @@ export default function FootprintManagerPage({ mode = 'footprints' }: { mode?: F
                                     <div>
                                         <div className="text-sm font-medium">拖拽图片到这里，或点击按钮选择文件</div>
                                         <div className="text-xs text-[color:var(--ink-soft)]">
-                                            首版限制：单次最多 {UPLOAD_FILE_LIMIT} 张，按每批 {UPLOAD_BATCH_SIZE} 张并发上传。
+                                            首版限制：单次最多 {UPLOAD_FILE_LIMIT} 张；每批最多 {UPLOAD_BATCH_MAX_FILES} 张且不超过{' '}
+                                            {Math.floor(UPLOAD_BATCH_MAX_BYTES / (1024 * 1024))}MB，支持失败重试。
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
