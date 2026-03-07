@@ -15,8 +15,6 @@ public final class AdminTabCodes {
     public static final String COMMENTS = "COMMENTS";
     public static final String TAGS = "TAGS";
     public static final String CATEGORIES = "CATEGORIES";
-    public static final String FOOTPRINTS = "FOOTPRINTS";
-    public static final String MATERIALS = "MATERIALS";
     public static final String COVER_MATERIALS = "COVER_MATERIALS";
     public static final String SETTINGS = "SETTINGS";
     public static final String ACCOUNTS = "ACCOUNTS";
@@ -29,8 +27,6 @@ public final class AdminTabCodes {
             COMMENTS,
             TAGS,
             CATEGORIES,
-            FOOTPRINTS,
-            MATERIALS,
             COVER_MATERIALS,
             SETTINGS,
             ACCOUNTS
@@ -44,8 +40,6 @@ public final class AdminTabCodes {
             COMMENTS,
             TAGS,
             CATEGORIES,
-            FOOTPRINTS,
-            MATERIALS,
             COVER_MATERIALS
     );
 

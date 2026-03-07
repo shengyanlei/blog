@@ -186,14 +186,6 @@ public class AccountAdminServiceImpl implements AccountAdminService {
                 label = "分类管理";
                 description = "分类维护";
                 break;
-            case AdminTabCodes.FOOTPRINTS:
-                label = "足迹管理";
-                description = "旅程与计划管理";
-                break;
-            case AdminTabCodes.MATERIALS:
-                label = "照片墙";
-                description = "照片上传、地址绑定与归档";
-                break;
             case AdminTabCodes.COVER_MATERIALS:
                 label = "素材池";
                 description = "仅用于文章封面的素材管理";

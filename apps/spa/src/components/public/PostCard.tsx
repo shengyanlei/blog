@@ -17,6 +17,7 @@ export interface PostCardProps {
     readTime?: string
     views?: number
     index?: number
+    variant?: 'default' | 'featuredCompact'
 }
 
 export function PostCard({
@@ -30,12 +31,14 @@ export function PostCard({
     readTime,
     views,
     index = 0,
+    variant = 'default',
 }: PostCardProps) {
     const formattedDate = publishDate ? new Date(publishDate).toLocaleDateString() : '未知日期'
     const safeExcerpt = excerpt || '这篇文章还没有摘要，点击卡片查看详情。'
     const hasImage = Boolean(coverImage)
     const shouldReduceMotion = useReducedMotion()
     const order = String(index + 1).padStart(2, '0')
+    const isFeaturedCompact = variant === 'featuredCompact'
 
     return (
         <motion.div
@@ -43,9 +46,13 @@ export function PostCard({
             animate={{ opacity: 1, y: 0 }}
             transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.5, delay: index * 0.1 }}
         >
-            <Card className="group h-full overflow-hidden rounded-3xl border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-0 shadow-[0_30px_60px_-48px_rgba(31,41,55,0.35)] transition-all duration-300 hover:-translate-y-1 hover:border-[color:var(--accent)]/40">
-                <Link to={buildPostPath(slug, categorySlugPath)} className="flex h-full flex-col">
-                    <div className="relative aspect-[4/3] w-full overflow-hidden">
+            <Card
+                className={`group overflow-hidden border border-[color:var(--card-border)] bg-[color:var(--paper-soft)] p-0 shadow-[0_30px_60px_-48px_rgba(31,41,55,0.35)] transition-all duration-300 hover:-translate-y-1 hover:border-[color:var(--accent)]/40 ${
+                    isFeaturedCompact ? 'rounded-[28px]' : 'h-full rounded-3xl'
+                }`}
+            >
+                <Link to={buildPostPath(slug, categorySlugPath)} className={`flex flex-col ${isFeaturedCompact ? '' : 'h-full'}`}>
+                    <div className={`relative w-full overflow-hidden ${isFeaturedCompact ? 'aspect-[16/9]' : 'aspect-[4/3]'}`}>
                         {hasImage ? (
                             <img
                                 src={coverImage}
@@ -61,8 +68,12 @@ export function PostCard({
                         </div>
                     </div>
 
-                    <div className="flex h-full flex-col gap-4 p-6">
-                        <div className="flex flex-wrap items-center gap-4 text-xs text-[color:var(--ink-soft)]">
+                    <div className={`flex flex-col ${isFeaturedCompact ? 'gap-3 px-6 pb-6 pt-5' : 'h-full gap-4 p-6'}`}>
+                        <div
+                            className={`flex flex-wrap items-center text-[color:var(--ink-soft)] ${
+                                isFeaturedCompact ? 'gap-3 text-[11px]' : 'gap-4 text-xs'
+                            }`}
+                        >
                             <span className="flex items-center gap-1.5">
                                 <Calendar className="h-3.5 w-3.5" strokeWidth={1.75} />
                                 {formattedDate}
@@ -81,13 +92,23 @@ export function PostCard({
                             )}
                         </div>
 
-                        <h3 className="text-2xl font-display text-[color:var(--ink)] leading-snug transition-colors group-hover:text-[color:var(--accent)] line-clamp-2">
+                        <h3
+                            className={`font-display leading-snug text-[color:var(--ink)] transition-colors group-hover:text-[color:var(--accent)] line-clamp-2 ${
+                                isFeaturedCompact ? 'text-[clamp(1.8rem,2vw,2.35rem)]' : 'text-2xl'
+                            }`}
+                        >
                             {title}
                         </h3>
 
-                        <p className="text-sm text-[color:var(--ink-muted)] line-clamp-3 leading-relaxed">{safeExcerpt}</p>
+                        <p
+                            className={`text-sm leading-relaxed text-[color:var(--ink-muted)] ${
+                                isFeaturedCompact ? 'line-clamp-3 md:line-clamp-4' : 'line-clamp-3'
+                            }`}
+                        >
+                            {safeExcerpt}
+                        </p>
 
-                        <div className="mt-auto flex flex-wrap items-center gap-2">
+                        <div className={`flex flex-wrap items-center gap-2 ${isFeaturedCompact ? 'pt-2' : 'mt-auto'}`}>
                             <div className="flex flex-wrap gap-1.5">
                                 {tags.slice(0, 3).map((tag) => (
                                     <Badge

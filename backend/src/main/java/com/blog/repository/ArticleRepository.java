@@ -1,8 +1,10 @@
 package com.blog.repository;
 
+import com.blog.dto.article.CategoryArticleGroupMetaDTO;
 import com.blog.entity.Article;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -19,6 +21,10 @@ import java.util.Optional;
 @Repository
 public interface ArticleRepository extends JpaRepository<Article, Long>, JpaSpecificationExecutor<Article> {
 
+    @Override
+    @EntityGraph(attributePaths = { "user", "category", "tags", "coverPhoto" })
+    Page<Article> findAll(Specification<Article> spec, Pageable pageable);
+
     /**
      * 鏍规嵁Slug鏌ユ壘鏂囩珷
      */
@@ -29,22 +35,34 @@ public interface ArticleRepository extends JpaRepository<Article, Long>, JpaSpec
      * 浣跨敤@EntityGraph閬垮厤N+1闂
      */
     @EntityGraph(attributePaths = { "user", "category", "tags", "coverPhoto" })
-    @Query("SELECT a FROM Article a WHERE a.status = 'PUBLISHED' ORDER BY a.publishedAt DESC")
+    @Query("SELECT a FROM Article a WHERE a.status = 'PUBLISHED' ORDER BY a.publishedAt DESC, a.id DESC")
     Page<Article> findPublishedArticles(Pageable pageable);
 
     /**
      * 鏍规嵁鍒嗙被ID鏌ユ壘宸插彂甯冪殑鏂囩珷锛堝垎椤碉級
      */
     @EntityGraph(attributePaths = { "user", "category", "tags", "coverPhoto" })
-    @Query("SELECT a FROM Article a WHERE a.status = 'PUBLISHED' AND a.category.id = :categoryId ORDER BY a.publishedAt DESC")
+    @Query("SELECT a FROM Article a WHERE a.status = 'PUBLISHED' AND a.category.id = :categoryId ORDER BY a.publishedAt DESC, a.id DESC")
     Page<Article> findPublishedArticlesByCategory(@Param("categoryId") Long categoryId, Pageable pageable);
 
     /**
      * 鎼滅储宸插彂甯冪殑鏂囩珷锛堟爣棰樻垨鍐呭鍖呭惈鍏抽敭璇嶏級
      */
     @EntityGraph(attributePaths = { "user", "category", "tags", "coverPhoto" })
-    @Query("SELECT a FROM Article a WHERE a.status = 'PUBLISHED' AND (a.title LIKE %:keyword% OR a.content LIKE %:keyword%) ORDER BY a.publishedAt DESC")
+    @Query("SELECT a FROM Article a WHERE a.status = 'PUBLISHED' AND (a.title LIKE %:keyword% OR a.summary LIKE %:keyword% OR a.content LIKE %:keyword%) ORDER BY a.publishedAt DESC, a.id DESC")
     Page<Article> searchPublishedArticles(@Param("keyword") String keyword, Pageable pageable);
+
+    @EntityGraph(attributePaths = { "user", "category", "tags", "coverPhoto" })
+    @Query("SELECT a FROM Article a ORDER BY CASE WHEN a.publishedAt IS NULL THEN a.createdAt ELSE a.publishedAt END DESC, a.id DESC")
+    Page<Article> findAllOrderByVisibleDate(Pageable pageable);
+
+    @Query("SELECT new com.blog.dto.article.CategoryArticleGroupMetaDTO(" +
+            "c.id, c.name, c.description, c.slugPath, c.parent.id, COUNT(a), MAX(a.publishedAt)) " +
+            "FROM Article a JOIN a.category c " +
+            "WHERE a.status = 'PUBLISHED' " +
+            "GROUP BY c.id, c.name, c.description, c.slugPath, c.parent.id " +
+            "ORDER BY MAX(a.publishedAt) DESC, c.id DESC")
+    List<CategoryArticleGroupMetaDTO> findPublishedCategoryGroupMetas();
 
     /**
      * 鏍规嵁ID鏌ユ壘鏂囩珷骞跺姞杞藉叧鑱斿疄浣?     */

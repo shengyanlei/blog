@@ -1,4 +1,4 @@
-﻿import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter } from 'react-router-dom'
 import RootLayout from '../layouts/RootLayout'
 import PublicLayout from '../layouts/PublicLayout'
 import AdminLayout from '../layouts/AdminLayout'
@@ -8,21 +8,17 @@ import DashboardPage from '../pages/admin/DashboardPage'
 import ArticleDetailPage from '../pages/public/ArticleDetailPage'
 import AboutPage from '../pages/public/AboutPage'
 import ArchivePage from '../pages/public/ArchivePage'
-import FootprintPage from '../pages/public/FootprintPage'
+import GuestbookPage from '../pages/public/GuestbookPage'
 import ArticleManagerPage from '../pages/admin/ArticleManagerPage'
 import ArticleEditorPage from '../pages/admin/ArticleEditorPage'
 import ArticleUploadPage from '../pages/admin/ArticleUploadPage'
 import TagManagerPage from '../pages/admin/TagManagerPage'
 import CategoryManagerPage from '../pages/admin/CategoryManagerPage'
 import CommentManagerPage from '../pages/admin/CommentManagerPage'
-import FootprintManagerPage from '../pages/admin/FootprintManagerPage'
-import MaterialPoolPage from '../pages/admin/MaterialPoolPage'
 import CoverMaterialPoolPage from '../pages/admin/CoverMaterialPoolPage'
 import NotionOAuthCallbackPage from '../pages/admin/NotionOAuthCallbackPage'
 import SettingsPage from '../pages/admin/SettingsPage'
 import AccountManagerPage from '../pages/admin/AccountManagerPage'
-import PrototypeFootprintChroniclePage from '../pages/prototype/PrototypeFootprintChroniclePage'
-import PrototypeAdminFootprintChroniclePage from '../pages/prototype/PrototypeAdminFootprintChroniclePage'
 
 const defaultError = <div className="p-6 text-red-600">抱歉，页面不存在或发生错误。</div>
 const adminError = <div className="p-6 text-red-600">抱歉，后台页面出错或不存在。</div>
@@ -42,13 +38,11 @@ export const router = createBrowserRouter([
                     { path: '/post/*', element: <ArticleDetailPage /> },
                     { path: '/about', element: <AboutPage /> },
                     { path: '/archive', element: <ArchivePage /> },
-                    { path: '/footprint', element: <FootprintPage /> },
+                    { path: '/guestbook', element: <GuestbookPage /> },
                 ],
             },
             { path: '/admin/login', element: <LoginPage /> },
             { path: '/admin/notion/callback', element: <NotionOAuthCallbackPage /> },
-            { path: '/prototype/footprint-chronicle', element: <PrototypeFootprintChroniclePage /> },
-            { path: '/prototype/admin-footprint-chronicle', element: <PrototypeAdminFootprintChroniclePage /> },
             {
                 path: '/admin',
                 element: <AdminLayout />,
@@ -61,8 +55,6 @@ export const router = createBrowserRouter([
                     { path: 'upload', element: <ArticleUploadPage /> },
                     { path: 'tags', element: <TagManagerPage /> },
                     { path: 'categories', element: <CategoryManagerPage /> },
-                    { path: 'footprints', element: <FootprintManagerPage /> },
-                    { path: 'materials', element: <MaterialPoolPage /> },
                     { path: 'cover-materials', element: <CoverMaterialPoolPage /> },
                     { path: 'settings', element: <SettingsPage /> },
                     { path: 'accounts', element: <AccountManagerPage /> },

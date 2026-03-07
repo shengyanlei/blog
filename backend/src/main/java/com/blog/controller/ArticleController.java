@@ -5,6 +5,7 @@ import com.blog.dto.article.ArticleCreateRequest;
 import com.blog.dto.article.ArticleDetailDTO;
 import com.blog.dto.article.ArticleSummaryDTO;
 import com.blog.dto.article.ArticleUpdateRequest;
+import com.blog.dto.article.CategoryArticleGroupDTO;
 import com.blog.service.ArticleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,20 +35,28 @@ public class ArticleController {
     public ResponseEntity<ApiResponse<Page<ArticleSummaryDTO>>> getArticles(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer featuredLevel,
+            @RequestParam(required = false, defaultValue = "false") Boolean excludeFeatured,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<ArticleSummaryDTO> articles;
-
-        if (categoryId != null) {
-            articles = articleService.getPublishedArticlesByCategory(categoryId, pageable);
-        } else if (keyword != null && !keyword.isEmpty()) {
-            articles = articleService.searchPublishedArticles(keyword, pageable);
-        } else {
-            articles = articleService.getPublishedArticles(pageable);
-        }
-
+        Page<ArticleSummaryDTO> articles = articleService.getPublishedArticles(
+                keyword,
+                categoryId,
+                featuredLevel,
+                excludeFeatured,
+                pageable
+        );
         return ResponseEntity.ok(ApiResponse.success(articles));
+    }
+
+    /**
+     * Group published articles by category for archive landing page.
+     */
+    @GetMapping("/grouped")
+    public ResponseEntity<ApiResponse<java.util.List<CategoryArticleGroupDTO>>> getGroupedArticles(
+            @RequestParam(defaultValue = "6") int perCategoryLimit) {
+        return ResponseEntity.ok(ApiResponse.success(articleService.getPublishedArticleGroups(perCategoryLimit)));
     }
 
     /**

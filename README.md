@@ -20,9 +20,8 @@
 
 这是一个面向个人内容创作与长期运营的全栈博客系统，不只是单纯的文章展示模板。
 
-- 访客可浏览首页、文章、归档、关于、足迹等页面
+- 访客可浏览首页、文章、归档、关于等页面
 - 管理员可在后台管理文章、分类、标签、评论与站点信息
-- 支持足迹/旅程内容沉淀，适合“写作 + 生活记录”一体化站点
 - 支持 Notion 导入，降低从写作工具到发布平台的迁移成本
 
 ## 核心能力
@@ -38,11 +37,6 @@
 - 站点标题、导航、个人资料等可配置
 - 后台支持维护运行时站点配置
 
-### 足迹与旅程
-
-- 地点、照片、旅程信息结构化管理
-- 内容表达从“文章”扩展到“记录系统”
-
 ### Notion 导入
 
 - 支持 Integration / OAuth / Public 模式
@@ -56,14 +50,13 @@
 - 文章详情
 - 归档
 - 关于
-- 足迹
 
 ### 管理端（Admin）
 
 - 登录与鉴权
 - 仪表盘
 - 文章、分类、标签、评论管理
-- 足迹与设置中心
+- 素材池与设置中心
 
 ### 服务端（Backend）
 
@@ -125,9 +118,8 @@ pnpm dev
 
 This is a full-stack blog platform designed for long-term content operations, not just static article pages.
 
-- Public users can browse home, article, archive, about, and footprint pages
+- Public users can browse home, article, archive, and about pages
 - Admin users can manage articles, categories, tags, comments, and site info
-- Footprint/journey modules support structured life and travel storytelling
 - Notion import helps bridge writing workflow and publishing workflow
 
 ## Core Capabilities
@@ -143,11 +135,6 @@ This is a full-stack blog platform designed for long-term content operations, no
 - Configurable site identity (title, nav, profile, etc.)
 - Runtime site configuration managed from admin settings
 
-### Footprint & Journey
-
-- Structured management for places, photos, and trip records
-- Expands expression from articles to a broader personal record system
-
 ### Notion Import
 
 - Supports Integration / OAuth / Public modes
@@ -161,14 +148,13 @@ This is a full-stack blog platform designed for long-term content operations, no
 - Article detail
 - Archive
 - About
-- Footprint
 
 ### Admin
 
 - Login and authentication
 - Dashboard
 - Article/category/tag/comment management
-- Footprint and settings center
+- Cover materials and settings center
 
 ### Backend
 
@@ -217,6 +203,7 @@ Default URLs:
 
 - Backend supplemental doc: [backend/README.md](./backend/README.md)
 - Requirement/design materials: [docs](./docs)
+- Blog long-term evolution principles: [docs/博客长期演进原则.md](./docs/博客长期演进原则.md)
 
 </details>
 

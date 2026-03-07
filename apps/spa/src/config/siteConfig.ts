@@ -14,7 +14,6 @@ export interface SiteConfig {
                 home: string
                 about: string
                 archive: string
-                footprint: string
                 admin: string
             }
         }
@@ -359,7 +358,6 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
                 home: '首页',
                 about: '关于',
                 archive: '文章',
-                footprint: '足迹',
                 admin: '后台管理',
             },
         },
@@ -464,7 +462,6 @@ const normalizeSiteConfig = (raw: unknown): SiteConfig => {
                     home: asString(navLabels?.home) ?? DEFAULT_SITE_CONFIG.site.brand.navLabels.home,
                     about: asString(navLabels?.about) ?? DEFAULT_SITE_CONFIG.site.brand.navLabels.about,
                     archive: asString(navLabels?.archive) ?? DEFAULT_SITE_CONFIG.site.brand.navLabels.archive,
-                    footprint: asString(navLabels?.footprint) ?? DEFAULT_SITE_CONFIG.site.brand.navLabels.footprint,
                     admin: asString(navLabels?.admin) ?? DEFAULT_SITE_CONFIG.site.brand.navLabels.admin,
                 },
             },

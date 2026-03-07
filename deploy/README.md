@@ -234,10 +234,8 @@ ls -1 /opt/blog/releases
   - `RUN_DB_MIGRATIONS=true`
   - `BACKEND_ENV_FILE=/etc/blog/blog-backend.env` (default path)
 - If enabled, it applies these scripts in order:
-  1. `prod-journey-schema.sql`
-  2. `prod-travel-plan-schema.sql`
-  3. `prod-location-address-schema.sql`
-  4. `prod-pending-asset-schema.sql`
+  1. `prod-account-material-schema.sql`
+  2. `prod-article-featured-level.sql`
 
 Example:
 
@@ -263,9 +261,6 @@ NOTION_MAX_RETRIES=3
 NOTION_PREVIEW_CACHE_TTL_SECONDS=600
 NOTION_PREVIEW_CACHE_MAX_ENTRIES=200
 
-FOOTPRINT_REVERSE_GEO_ASYNC=true
-FOOTPRINT_REVERSE_GEO_CONNECT_TIMEOUT_MS=1500
-FOOTPRINT_REVERSE_GEO_READ_TIMEOUT_MS=2500
 
 # Optional proxy for outbound HTTPS (only if required)
 # HTTPS_PROXY=http://127.0.0.1:7890

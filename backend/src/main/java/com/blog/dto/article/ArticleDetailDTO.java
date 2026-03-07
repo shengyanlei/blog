@@ -25,6 +25,7 @@ public class ArticleDetailDTO {
     private Long coverPhotoId;
     private String coverImage;
     private String status;
+    private Integer featuredLevel;
     private Long views;
     private LocalDateTime publishedAt;
     private LocalDateTime createdAt;

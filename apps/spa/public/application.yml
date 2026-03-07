@@ -12,7 +12,6 @@ site:
       home: "首页"
       about: "关于"
       archive: "文章"
-      footprint: "足迹"
       admin: "后台管理"
   profile:
     name: "shyl"

@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Home, Info, FileText, Search, Map, Sparkles } from 'lucide-react'
+import { Home, Info, FileText, MessageSquare, Search, Sparkles } from 'lucide-react'
 import { Button } from '@repo/ui/components/ui/button'
 import clsx from 'clsx'
 import { paperThemeVars } from '../lib/theme'
@@ -12,6 +12,7 @@ export default function PublicLayout() {
     const isArticlePage = location.pathname.startsWith('/post')
     const config = getSiteConfig()
     const navLabels = config.site.brand.navLabels
+    const guestbookLabel = '留言板'
 
     return (
         <div className="flex min-h-screen flex-col" style={paperThemeVars}>
@@ -55,18 +56,25 @@ export default function PublicLayout() {
                                 {navLabels.archive}
                             </Link>
                             <Link
-                                to="/footprint"
+                                to="/guestbook"
                                 className={clsx(
                                     'flex items-center gap-2 transition-colors',
-                                    isActive('/footprint') ? 'text-[color:var(--ink)]' : 'hover:text-[color:var(--ink)]'
+                                    isActive('/guestbook') ? 'text-[color:var(--ink)]' : 'hover:text-[color:var(--ink)]'
                                 )}
                             >
-                                <Map className="h-4 w-4" />
-                                {navLabels.footprint}
+                                <MessageSquare className="h-4 w-4" />
+                                {guestbookLabel}
                             </Link>
                         </nav>
 
                         <div className="flex items-center gap-3">
+                            <Link
+                                to="/guestbook"
+                                className="inline-flex min-h-11 items-center gap-1 rounded-full border border-[color:var(--card-border)] bg-[color:var(--paper-strong)] px-3 text-xs font-semibold text-[color:var(--ink)] transition-colors hover:bg-white md:hidden"
+                            >
+                                <MessageSquare className="h-4 w-4 text-[color:var(--accent)]" />
+                                留言
+                            </Link>
                             <button
                                 aria-label="搜索"
                                 className="hidden md:inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--card-border)] bg-[color:var(--paper-strong)] text-[color:var(--ink-muted)] hover:bg-white transition-colors"

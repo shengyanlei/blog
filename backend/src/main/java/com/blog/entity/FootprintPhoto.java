@@ -1,24 +1,23 @@
 package com.blog.entity;
 
-import javax.persistence.*;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.PrePersist;
+import javax.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "footprint_photo", indexes = {
-        @Index(name = "idx_fp_location", columnList = "location_id")
-})
+@Table(name = "footprint_photo")
 public class FootprintPhoto {
-    public static final String SOURCE_TYPE_PHOTO_WALL = "PHOTO_WALL";
     public static final String SOURCE_TYPE_COVER_MATERIAL = "COVER_MATERIAL";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "location_id")
-    private FootprintLocation location;
 
     @Column(nullable = false)
     private String url;
@@ -35,14 +34,14 @@ public class FootprintPhoto {
     private Boolean cover = false;
 
     @Column(name = "source_type", nullable = false, length = 30)
-    private String sourceType = SOURCE_TYPE_PHOTO_WALL;
+    private String sourceType = SOURCE_TYPE_COVER_MATERIAL;
 
     private LocalDateTime createdAt;
 
     @PrePersist
     public void prePersist() {
         if (sourceType == null || sourceType.trim().isEmpty()) {
-            sourceType = SOURCE_TYPE_PHOTO_WALL;
+            sourceType = SOURCE_TYPE_COVER_MATERIAL;
         }
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
@@ -55,14 +54,6 @@ public class FootprintPhoto {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public FootprintLocation getLocation() {
-        return location;
-    }
-
-    public void setLocation(FootprintLocation location) {
-        this.location = location;
     }
 
     public String getUrl() {

@@ -2,6 +2,7 @@ package com.blog.controller;
 
 import com.blog.common.ApiResponse;
 import com.blog.dto.article.ArticleDetailDTO;
+import com.blog.dto.article.ArticleFeaturedLevelUpdateRequest;
 import com.blog.dto.article.ArticleSummaryDTO;
 import com.blog.dto.article.NotionImportPreviewResponse;
 import com.blog.dto.article.NotionImportRequest;
@@ -17,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -38,10 +40,11 @@ public class AdminArticleController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public ResponseEntity<ApiResponse<Page<ArticleSummaryDTO>>> getAllArticles(
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<ArticleSummaryDTO> articles = articleService.getAllArticles(pageable);
+        Page<ArticleSummaryDTO> articles = articleService.getAllArticles(keyword, pageable);
         return ResponseEntity.ok(ApiResponse.success(articles));
     }
 
@@ -49,6 +52,15 @@ public class AdminArticleController {
     @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
     public ResponseEntity<ApiResponse<ArticleDetailDTO>> getArticleDetail(@PathVariable Long id) {
         ArticleDetailDTO article = articleService.getArticleDetailForAdmin(id);
+        return ResponseEntity.ok(ApiResponse.success(article));
+    }
+
+    @PutMapping("/{id}/featured-level")
+    @PreAuthorize("hasAnyRole('ADMIN','OWNER')")
+    public ResponseEntity<ApiResponse<ArticleSummaryDTO>> updateFeaturedLevel(
+            @PathVariable Long id,
+            @Valid @RequestBody ArticleFeaturedLevelUpdateRequest request) {
+        ArticleSummaryDTO article = articleService.updateFeaturedLevel(id, request.getFeaturedLevel());
         return ResponseEntity.ok(ApiResponse.success(article));
     }
 

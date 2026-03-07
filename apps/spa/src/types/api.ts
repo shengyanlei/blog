@@ -22,6 +22,7 @@ export interface ArticleSummary {
     coverPhotoId?: number | null;
     coverImage?: string;
     status: string;
+    featuredLevel?: number;
     views: number;
     commentCount?: number;
     publishedAt?: string;
@@ -34,6 +35,21 @@ export interface ArticleSummary {
 export interface ArticleDetail extends ArticleSummary {
     content: string;
     updatedAt?: string;
+}
+
+export interface CategoryArticleGroup {
+    category: Category;
+    totalCount: number;
+    articles: ArticleSummary[];
+}
+
+export interface GuestbookEntry {
+    id: number;
+    authorName: string;
+    location?: string | null;
+    content: string;
+    status: string;
+    createdAt?: string;
 }
 
 export interface Comment {
@@ -80,193 +96,11 @@ export interface PageResult<T> {
     size: number;
 }
 
-export interface FootprintPhoto {
-    id?: number;
-    url: string;
-    shotAt?: string;
-    trip?: string;
-    note?: string;
-    tags?: string;
-    cover?: boolean;
-}
-
-export interface LocationData {
-    id?: number;
-    province: string;
-    city?: string;
-    visitedCities?: number;
-    visitedCitiesWithPhotos?: number;
-    visitCount: number;
-    photoCount: number;
-    lastVisited?: string;
-    tags?: string;
-    coverUrl?: string;
-    photos?: FootprintPhoto[];
-}
-
-export interface ProvinceSummary {
-    province: string;
-    visitedCities: number;
-    visitCount: number;
-    photoCount: number;
-    lastVisited?: string;
-}
-
-export interface JourneyLocation {
-    id: number;
-    province: string;
-    city: string;
-    visitCount?: number;
-    photoCount?: number;
-    lastVisited?: string;
-    coverUrl?: string;
-}
-
-export interface JourneyPhoto {
-    id?: number;
-    url: string;
-    shotAt?: string;
-    trip?: string;
-    note?: string;
-    tags?: string;
-    cover?: boolean;
-    province?: string;
-    city?: string;
-}
-
-export interface TravelJourneySummary {
-    id: number;
-    title: string;
-    startDate?: string;
-    endDate?: string;
-    summary?: string;
-    tags?: string;
-    coverUrl?: string;
-    cities: string[];
-    photoCount: number;
-}
-
-export interface TravelJourneyDetail extends TravelJourneySummary {
-    content?: string;
-    companions?: string;
-    budgetMin?: number;
-    budgetMax?: number;
-    locations: JourneyLocation[];
-    photos: JourneyPhoto[];
-}
-
-export type TravelPlanStatus = 'IDEA' | 'PLANNING' | 'BOOKED' | 'DONE' | 'CANCELED';
-export type TravelPlanPriority = 'LOW' | 'MEDIUM' | 'HIGH';
-
-export interface TravelPlanTask {
-    id?: number;
-    title: string;
-    done?: boolean;
-    sortOrder?: number;
-}
-
-export interface TravelPlan {
-    id: number;
-    title: string;
-    province: string;
-    city: string;
-    startDate?: string;
-    endDate?: string;
-    status: TravelPlanStatus;
-    priority: TravelPlanPriority;
-    budgetMin?: number;
-    budgetMax?: number;
-    tags?: string;
-    notes?: string;
-    linkedJourneyId?: number;
-    linkedJourneyTitle?: string;
-    tasks: TravelPlanTask[];
-    createdAt?: string;
-    updatedAt?: string;
-}
-
-export interface UnassignedLocationAsset {
-    locationId: number;
-    country?: string;
-    province: string;
-    city: string;
-    addressDetail?: string;
-    fullAddress?: string;
-    photoCount?: number;
-    photos: JourneyPhoto[];
-}
-
-export interface PendingAssetPhoto {
-    photoId: number;
-    url: string;
-    shotAt?: string;
-    uploadedAt?: string;
-    note?: string;
-    tags?: string;
-    bound: boolean;
-    locationId?: number;
-    country?: string;
-    province?: string;
-    city?: string;
-    addressDetail?: string;
-    fullAddress?: string;
-}
-
 export interface CoverMaterial {
     photoId: number;
     url: string;
     uploadedAt?: string;
     usedAsCover: boolean;
-}
-
-export type AssetPendingScope = 'ALL' | 'PENDING' | 'BOUND';
-
-export interface BindPendingToPlanRequest {
-    photoIds: number[];
-    planId: number;
-}
-
-export interface BindPendingToJourneyRequest {
-    photoIds: number[];
-    journeyId: number;
-    locationId?: number;
-}
-
-export interface BindPendingToAddressRequest {
-    photoIds: number[];
-    address: {
-        country: string;
-        province: string;
-        city: string;
-        addressDetail?: string;
-    };
-}
-
-export interface BindPendingResult {
-    boundCount: number;
-    reboundCount: number;
-    skippedCount: number;
-    locationId?: number;
-    country?: string;
-    province?: string;
-    city?: string;
-    addressDetail?: string;
-    fullAddress?: string;
-}
-
-export type AssetUploadJobStatus = 'pending' | 'uploading' | 'success' | 'failed';
-
-export interface AssetUploadJob {
-    localId: string;
-    name: string;
-    size: number;
-    status: AssetUploadJobStatus;
-    error?: string;
-}
-
-export interface AssetSelectionState {
-    selectedPhotoIds: number[];
-    totalSelected: number;
 }
 
 export interface UpdatePasswordRequest {

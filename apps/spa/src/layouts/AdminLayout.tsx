@@ -8,7 +8,6 @@ import {
     Tag,
     MessageSquare,
     Upload,
-    MapPinned,
     Image,
     Users,
 } from 'lucide-react'
@@ -59,8 +58,6 @@ export default function AdminLayout() {
         { tabCode: ADMIN_TAB_CODES.COMMENTS, to: '/admin/comments', label: '评论管理', icon: MessageSquare },
         { tabCode: ADMIN_TAB_CODES.TAGS, to: '/admin/tags', label: '标签管理', icon: Tag },
         { tabCode: ADMIN_TAB_CODES.CATEGORIES, to: '/admin/categories', label: '分类管理', icon: FileText },
-        { tabCode: ADMIN_TAB_CODES.FOOTPRINTS, to: '/admin/footprints', label: '足迹管理', icon: MapPinned },
-        { tabCode: ADMIN_TAB_CODES.MATERIALS, to: '/admin/materials', label: '照片墙', icon: Image },
         { tabCode: ADMIN_TAB_CODES.COVER_MATERIALS, to: '/admin/cover-materials', label: '素材池', icon: Image },
         { tabCode: ADMIN_TAB_CODES.SETTINGS, to: '/admin/settings', label: '设置', icon: Settings },
         { tabCode: ADMIN_TAB_CODES.ACCOUNTS, to: '/admin/accounts', label: '账号管理', icon: Users },

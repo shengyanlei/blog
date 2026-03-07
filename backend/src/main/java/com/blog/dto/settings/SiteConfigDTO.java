@@ -77,9 +77,6 @@ public class SiteConfigDTO {
         @NotBlank(message = "site.brand.navLabels.archive is required")
         private String archive;
 
-        @NotBlank(message = "site.brand.navLabels.footprint is required")
-        private String footprint;
-
         @NotBlank(message = "site.brand.navLabels.admin is required")
         private String admin;
     }

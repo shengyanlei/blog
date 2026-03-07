@@ -16,10 +16,9 @@ RUN_DB_MIGRATIONS="${RUN_DB_MIGRATIONS:-false}"
 BACKEND_ENV_FILE="${BACKEND_ENV_FILE:-/etc/blog/blog-backend.env}"
 
 DB_MIGRATION_SCRIPTS=(
-  "prod-journey-schema.sql"
-  "prod-travel-plan-schema.sql"
-  "prod-location-address-schema.sql"
-  "prod-pending-asset-schema.sql"
+  "prod-account-material-schema.sql"
+  "prod-article-featured-level.sql"
+  "prod-guestbook-schema.sql"
 )
 
 log() {

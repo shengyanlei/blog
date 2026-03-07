@@ -54,7 +54,7 @@ public class SecurityConfig {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests()
-                .antMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .antMatchers(HttpMethod.POST, "/api/auth/login").permitAll();
 
         if (publicRegisterEnabled) {
@@ -64,22 +64,14 @@ public class SecurityConfig {
         }
 
         authorizeRequests
-                .antMatchers(HttpMethod.GET, "/api/articles", "/api/articles/", "/api/articles/*",
-                        "/api/articles/slug/*").permitAll()
+                .antMatchers(HttpMethod.GET, "/api/articles", "/api/articles/", "/api/articles/*", "/api/articles/slug/*").permitAll()
                 .antMatchers(HttpMethod.GET, "/api/categories/**", "/api/tags/**").permitAll()
+                .antMatchers(HttpMethod.GET, "/api/guestbook/**").permitAll()
+                .antMatchers(HttpMethod.POST, "/api/guestbook/**").permitAll()
                 .antMatchers(HttpMethod.GET, "/api/articles/*/comments").permitAll()
                 .antMatchers(HttpMethod.POST, "/api/articles/*/comments").permitAll()
                 .antMatchers("/uploads/**").permitAll()
-                // Journeys: GET public, other operations require login
-                .antMatchers(HttpMethod.GET, "/api/journeys/**").permitAll()
-                .antMatchers("/api/journeys/**").authenticated()
-                .antMatchers("/api/materials/**").authenticated()
                 .antMatchers("/api/cover-materials/**").authenticated()
-                // Travel plans are private
-                .antMatchers("/api/travel-plans/**").authenticated()
-                // Footprints: GET public, other operations require login
-                .antMatchers(HttpMethod.GET, "/api/footprints/**").permitAll()
-                .antMatchers("/api/footprints/**").authenticated()
                 .antMatchers("/api/comments/**").hasAnyRole("ADMIN", "OWNER")
                 .antMatchers("/api/admin/**").hasAnyRole("ADMIN", "OWNER")
                 .antMatchers(HttpMethod.POST, "/api/categories/**", "/api/tags/**").hasAnyRole("ADMIN", "OWNER")
@@ -95,9 +87,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * Global CORS: allow configured front-end origin and common local development networks.
-     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

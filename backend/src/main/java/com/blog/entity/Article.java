@@ -42,6 +42,9 @@ public class Article {
     @Column(nullable = false, length = 20)
     private String status = "DRAFT"; // DRAFT, PUBLISHED
 
+    @Column(name = "featured_level", nullable = false)
+    private Integer featuredLevel = 0; // 0=none, 1=reading-queue, 2=featured-carousel
+
     @Column(nullable = false)
     private Long views = 0L;
 

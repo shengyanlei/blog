@@ -188,7 +188,6 @@ public class SettingsServiceImpl implements SettingsService {
         appendKv(sb, 6, "home", config.getSite().getBrand().getNavLabels().getHome());
         appendKv(sb, 6, "about", config.getSite().getBrand().getNavLabels().getAbout());
         appendKv(sb, 6, "archive", config.getSite().getBrand().getNavLabels().getArchive());
-        appendKv(sb, 6, "footprint", config.getSite().getBrand().getNavLabels().getFootprint());
         appendKv(sb, 6, "admin", config.getSite().getBrand().getNavLabels().getAdmin());
 
         sb.append("  profile:\n");

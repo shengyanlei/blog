@@ -4,8 +4,11 @@ import com.blog.dto.article.ArticleCreateRequest;
 import com.blog.dto.article.ArticleDetailDTO;
 import com.blog.dto.article.ArticleSummaryDTO;
 import com.blog.dto.article.ArticleUpdateRequest;
+import com.blog.dto.article.CategoryArticleGroupDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 /**
  * 文章服务接口
@@ -18,6 +21,16 @@ public interface ArticleService {
     Page<ArticleSummaryDTO> getPublishedArticles(Pageable pageable);
 
     /**
+     * 获取已发布文章的组合筛选结果（分页）。
+     */
+    Page<ArticleSummaryDTO> getPublishedArticles(
+            String keyword,
+            Long categoryId,
+            Integer featuredLevel,
+            Boolean excludeFeatured,
+            Pageable pageable);
+
+    /**
      * 根据分类获取已发布的文章（分页）
      */
     Page<ArticleSummaryDTO> getPublishedArticlesByCategory(Long categoryId, Pageable pageable);
@@ -26,6 +39,15 @@ public interface ArticleService {
      * 获取全部文章（管理端）
      */
     Page<ArticleSummaryDTO> getAllArticles(Pageable pageable);
+
+    /**
+     * 鎸夊叧閿瘝鑾峰彇绠＄悊绔枃绔犲垪琛ㄣ€?     */
+    Page<ArticleSummaryDTO> getAllArticles(String keyword, Pageable pageable);
+
+    /**
+     * 按分类分组获取公开文章归档。
+     */
+    List<CategoryArticleGroupDTO> getPublishedArticleGroups(int perCategoryLimit);
 
     /**
      * 搜索已发布的文章（分页）
@@ -56,6 +78,11 @@ public interface ArticleService {
      * 更新文章
      */
     void updateArticle(Long id, ArticleUpdateRequest request);
+
+    /**
+     * 更新文章精选等级。
+     */
+    ArticleSummaryDTO updateFeaturedLevel(Long id, int featuredLevel);
 
     /**
      * 删除文章

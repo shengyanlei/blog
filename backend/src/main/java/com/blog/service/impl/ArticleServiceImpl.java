@@ -4,6 +4,7 @@ import com.blog.dto.article.ArticleCreateRequest;
 import com.blog.dto.article.ArticleDetailDTO;
 import com.blog.dto.article.ArticleSummaryDTO;
 import com.blog.dto.article.ArticleUpdateRequest;
+import com.blog.dto.article.CategoryArticleGroupDTO;
 import com.blog.dto.category.CategoryDTO;
 import com.blog.dto.tag.TagDTO;
 import com.blog.entity.Article;
@@ -21,15 +22,23 @@ import com.blog.repository.UserRepository;
 import com.blog.service.ArticleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import javax.persistence.EntityNotFoundException;
+import javax.persistence.criteria.JoinType;
+import javax.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,6 +50,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ArticleServiceImpl implements ArticleService {
 
+    private static final Sort PUBLIC_ARTICLE_SORT = Sort.by(
+            Sort.Order.desc("publishedAt"),
+            Sort.Order.desc("id")
+    );
+
     private final ArticleRepository articleRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
@@ -50,30 +64,93 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public Page<ArticleSummaryDTO> getPublishedArticles(Pageable pageable) {
-        log.info("Fetching published articles, page {}", pageable.getPageNumber());
-        return articleRepository.findPublishedArticles(pageable)
+        return getPublishedArticles(null, null, null, false, pageable);
+    }
+
+    @Override
+    public Page<ArticleSummaryDTO> getPublishedArticles(
+            String keyword,
+            Long categoryId,
+            Integer featuredLevel,
+            Boolean excludeFeatured,
+            Pageable pageable) {
+        log.info(
+                "Fetching published articles, page={}, keyword={}, categoryId={}, featuredLevel={}, excludeFeatured={}",
+                pageable.getPageNumber(),
+                keyword,
+                categoryId,
+                featuredLevel,
+                excludeFeatured
+        );
+        validateFeaturedLevel(featuredLevel);
+        Specification<Article> specification = buildPublishedArticleSpecification(
+                keyword,
+                categoryId,
+                featuredLevel,
+                excludeFeatured
+        );
+        return articleRepository.findAll(specification, buildPublicPageable(pageable))
                 .map(this::convertToSummaryDTO);
     }
 
     @Override
     public Page<ArticleSummaryDTO> getAllArticles(Pageable pageable) {
         log.info("Fetching all articles (admin), page {}", pageable.getPageNumber());
-        return articleRepository.findAll(pageable)
+        Pageable orderedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        return articleRepository.findAllOrderByVisibleDate(orderedPageable)
+                .map(this::convertToSummaryDTO);
+    }
+
+    @Override
+    public Page<ArticleSummaryDTO> getAllArticles(String keyword, Pageable pageable) {
+        if (!StringUtils.hasText(keyword)) {
+            return getAllArticles(pageable);
+        }
+
+        log.info("Fetching admin articles with keyword={}, page={}", keyword, pageable.getPageNumber());
+        Specification<Article> specification = buildAdminArticleSpecification(keyword);
+        Pageable adminPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        return articleRepository.findAll(specification, adminPageable)
                 .map(this::convertToSummaryDTO);
     }
 
     @Override
     public Page<ArticleSummaryDTO> getPublishedArticlesByCategory(Long categoryId, Pageable pageable) {
-        log.info("Fetching published articles for category {}", categoryId);
-        return articleRepository.findPublishedArticlesByCategory(categoryId, pageable)
-                .map(this::convertToSummaryDTO);
+        return getPublishedArticles(null, categoryId, null, false, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategoryArticleGroupDTO> getPublishedArticleGroups(int perCategoryLimit) {
+        if (perCategoryLimit <= 0) {
+            throw new BusinessException("perCategoryLimit 必须大于 0", HttpStatus.BAD_REQUEST);
+        }
+        log.info("Fetching published article groups, perCategoryLimit={}", perCategoryLimit);
+
+        Pageable groupPageable = PageRequest.of(0, perCategoryLimit);
+        return articleRepository.findPublishedCategoryGroupMetas().stream()
+                .map(meta -> new CategoryArticleGroupDTO(
+                        new CategoryDTO(
+                                meta.getCategoryId(),
+                                meta.getCategoryName(),
+                                meta.getCategoryDescription(),
+                                meta.getCategorySlugPath(),
+                                meta.getParentId(),
+                                null
+                        ),
+                        meta.getTotalCount(),
+                        articleRepository.findPublishedArticlesByCategory(meta.getCategoryId(), groupPageable)
+                                .getContent()
+                                .stream()
+                                .map(this::convertToSummaryDTO)
+                                .collect(Collectors.toList())
+                ))
+                .collect(Collectors.toList());
     }
 
     @Override
     public Page<ArticleSummaryDTO> searchPublishedArticles(String keyword, Pageable pageable) {
-        log.info("Searching published articles by keyword '{}'", keyword);
-        return articleRepository.searchPublishedArticles(keyword, pageable)
-                .map(this::convertToSummaryDTO);
+        return getPublishedArticles(keyword, null, null, false, pageable);
     }
 
     @Override
@@ -194,6 +271,19 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     @Transactional
+    public ArticleSummaryDTO updateFeaturedLevel(Long id, int featuredLevel) {
+        validateFeaturedLevel(featuredLevel);
+        log.info("Updating article {} featured level to {}", id, featuredLevel);
+
+        Article article = articleRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Article not found"));
+        article.setFeaturedLevel(featuredLevel);
+
+        return convertToSummaryDTO(articleRepository.save(article));
+    }
+
+    @Override
+    @Transactional
     public void deleteArticle(Long id) {
         log.info("Deleting article {}", id);
 
@@ -250,6 +340,76 @@ public class ArticleServiceImpl implements ArticleService {
         articleRepository.save(article);
     }
 
+    private Pageable buildPublicPageable(Pageable pageable) {
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), PUBLIC_ARTICLE_SORT);
+    }
+
+    private Specification<Article> buildAdminArticleSpecification(String keyword) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (StringUtils.hasText(keyword)) {
+                String likeKeyword = "%" + keyword.trim() + "%";
+                predicates.add(cb.or(
+                        cb.like(root.get("title"), likeKeyword),
+                        cb.like(root.get("summary"), likeKeyword),
+                        cb.like(root.get("content"), likeKeyword)
+                ));
+            }
+
+            query.distinct(true);
+            query.orderBy(
+                    cb.desc(cb.coalesce(root.get("publishedAt"), root.get("createdAt"))),
+                    cb.desc(root.get("id"))
+            );
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    private Specification<Article> buildPublishedArticleSpecification(
+            String keyword,
+            Long categoryId,
+            Integer featuredLevel,
+            Boolean excludeFeatured) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("status"), "PUBLISHED"));
+
+            if (StringUtils.hasText(keyword)) {
+                String likeKeyword = "%" + keyword.trim() + "%";
+                predicates.add(cb.or(
+                        cb.like(root.get("title"), likeKeyword),
+                        cb.like(root.get("summary"), likeKeyword),
+                        cb.like(root.get("content"), likeKeyword)
+                ));
+            }
+
+            if (categoryId != null) {
+                predicates.add(cb.equal(root.join("category", JoinType.LEFT).get("id"), categoryId));
+            }
+
+            if (featuredLevel != null) {
+                predicates.add(cb.equal(root.get("featuredLevel"), featuredLevel));
+            }
+
+            if (Boolean.TRUE.equals(excludeFeatured)) {
+                predicates.add(cb.equal(root.get("featuredLevel"), 0));
+            }
+
+            query.distinct(true);
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    private void validateFeaturedLevel(Integer featuredLevel) {
+        if (featuredLevel == null) {
+            return;
+        }
+        if (featuredLevel < 0 || featuredLevel > 2) {
+            throw new BusinessException("featuredLevel 只能是 0/1/2", HttpStatus.BAD_REQUEST);
+        }
+    }
+
     private ArticleSummaryDTO convertToSummaryDTO(Article article) {
         ArticleSummaryDTO dto = new ArticleSummaryDTO();
         dto.setId(article.getId());
@@ -259,6 +419,7 @@ public class ArticleServiceImpl implements ArticleService {
         dto.setCoverPhotoId(article.getCoverPhoto() == null ? null : article.getCoverPhoto().getId());
         dto.setCoverImage(article.getCoverPhoto() == null ? null : article.getCoverPhoto().getUrl());
         dto.setStatus(article.getStatus());
+        dto.setFeaturedLevel(article.getFeaturedLevel());
         dto.setViews(article.getViews());
         dto.setPublishedAt(article.getPublishedAt());
         dto.setCreatedAt(article.getCreatedAt());
@@ -297,6 +458,7 @@ public class ArticleServiceImpl implements ArticleService {
         dto.setCoverPhotoId(article.getCoverPhoto() == null ? null : article.getCoverPhoto().getId());
         dto.setCoverImage(article.getCoverPhoto() == null ? null : article.getCoverPhoto().getUrl());
         dto.setStatus(article.getStatus());
+        dto.setFeaturedLevel(article.getFeaturedLevel());
         dto.setViews(article.getViews());
         dto.setPublishedAt(article.getPublishedAt());
         dto.setCreatedAt(article.getCreatedAt());

@@ -43,7 +43,6 @@ const validateConfig = (config: SiteConfig) => {
         config.site.brand.navLabels.home,
         config.site.brand.navLabels.about,
         config.site.brand.navLabels.archive,
-        config.site.brand.navLabels.footprint,
         config.site.brand.navLabels.admin,
         config.site.profile.name,
         config.site.profile.initials,
@@ -316,11 +315,10 @@ export default function SettingsPage() {
                                     <div className="md:col-span-2"><textarea className={textAreaClass} rows={3} value={siteConfig.site.brand.heroDescription} onChange={(event) => patchConfig((prev) => { prev.site.brand.heroDescription = event.target.value })} placeholder="首页描述" /></div>
                                     <div className="md:col-span-2"><Input value={siteConfig.site.brand.footerText} onChange={(event) => patchConfig((prev) => { prev.site.brand.footerText = event.target.value })} className="bg-[color:var(--paper-soft)] border-[color:var(--card-border)]" placeholder="页脚文案" /></div>
                                 </div>
-                                <div className="grid gap-2 md:grid-cols-5">
+                                <div className="grid gap-2 md:grid-cols-4">
                                     <Input value={siteConfig.site.brand.navLabels.home} onChange={(event) => patchConfig((prev) => { prev.site.brand.navLabels.home = event.target.value })} className="bg-[color:var(--paper-soft)] border-[color:var(--card-border)]" placeholder="首页" />
                                     <Input value={siteConfig.site.brand.navLabels.about} onChange={(event) => patchConfig((prev) => { prev.site.brand.navLabels.about = event.target.value })} className="bg-[color:var(--paper-soft)] border-[color:var(--card-border)]" placeholder="关于" />
                                     <Input value={siteConfig.site.brand.navLabels.archive} onChange={(event) => patchConfig((prev) => { prev.site.brand.navLabels.archive = event.target.value })} className="bg-[color:var(--paper-soft)] border-[color:var(--card-border)]" placeholder="文章" />
-                                    <Input value={siteConfig.site.brand.navLabels.footprint} onChange={(event) => patchConfig((prev) => { prev.site.brand.navLabels.footprint = event.target.value })} className="bg-[color:var(--paper-soft)] border-[color:var(--card-border)]" placeholder="足迹" />
                                     <Input value={siteConfig.site.brand.navLabels.admin} onChange={(event) => patchConfig((prev) => { prev.site.brand.navLabels.admin = event.target.value })} className="bg-[color:var(--paper-soft)] border-[color:var(--card-border)]" placeholder="后台" />
                                 </div>
                                 </section>

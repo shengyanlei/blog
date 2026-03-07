@@ -2,7 +2,7 @@ package com.blog.controller;
 
 import com.blog.common.ApiResponse;
 import com.blog.dto.travel.CoverMaterialDTO;
-import com.blog.service.TravelJourneyService;
+import com.blog.service.CoverMaterialService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,7 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CoverMaterialController {
 
-    private final TravelJourneyService travelJourneyService;
+    private final CoverMaterialService coverMaterialService;
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
@@ -25,7 +25,7 @@ public class CoverMaterialController {
             @RequestParam(value = "size", defaultValue = "24") int size,
             @RequestParam(value = "photoId", required = false) Long photoId
     ) {
-        return ApiResponse.success(travelJourneyService.getCoverMaterials(page, size, photoId));
+        return ApiResponse.success(coverMaterialService.getCoverMaterials(page, size, photoId));
     }
 
     @GetMapping("/recommendations")
@@ -34,19 +34,19 @@ public class CoverMaterialController {
             @RequestParam(value = "size", defaultValue = "8") int size,
             @RequestParam(value = "photoId", required = false) Long photoId
     ) {
-        return ApiResponse.success(travelJourneyService.recommendCoverMaterials(size, photoId));
+        return ApiResponse.success(coverMaterialService.recommendCoverMaterials(size, photoId));
     }
 
     @PostMapping("/upload")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<List<CoverMaterialDTO>> upload(@RequestParam("files") MultipartFile[] files) {
-        return ApiResponse.success(travelJourneyService.uploadCoverMaterials(files));
+        return ApiResponse.success(coverMaterialService.uploadCoverMaterials(files));
     }
 
     @DeleteMapping("/{photoId}")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<Void> delete(@PathVariable Long photoId) {
-        travelJourneyService.deleteCoverMaterial(photoId);
+        coverMaterialService.deleteCoverMaterial(photoId);
         return ApiResponse.success();
     }
 }
