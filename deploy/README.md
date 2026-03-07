@@ -249,6 +249,39 @@ Notes:
 - Reads DB connection from `SPRING_DATASOURCE_*` in backend env file.
 - SQL scripts are idempotent and safe for repeated deploys.
 
+## 12. Automated schema migration workflow
+
+Production deploy now auto-discovers database migrations from:
+
+```text
+backend/scripts/migrations/*.sql
+```
+
+Behavior:
+
+- files run in filename order
+- each applied file is recorded in MySQL table `schema_migrations`
+- already applied files are skipped on later deploys
+- if an applied migration file is edited later, deploy fails on checksum mismatch
+
+Migration naming rule:
+
+```text
+VYYYYMMDD_NNN__description.sql
+```
+
+Example:
+
+```text
+V20260307_002__guestbook_schema.sql
+```
+
+Operational rule:
+
+- never edit or rename an already deployed migration
+- for every new MySQL table/column/index change, add a new file under `backend/scripts/migrations/`
+- GitHub Actions already runs deploy with `RUN_DB_MIGRATIONS=true`, so you no longer need to SSH into the server to apply schema changes manually
+
 ## 11. Notion + Upload Network Hardening (2026-03)
 
 Add these variables to `/etc/blog/blog-backend.env` for stable Notion import and upload behavior:

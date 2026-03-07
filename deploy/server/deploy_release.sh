@@ -14,12 +14,8 @@ HEALTH_INTERVAL_SECONDS="${HEALTH_INTERVAL_SECONDS:-2}"
 KEEP_RELEASES="${KEEP_RELEASES:-5}"
 RUN_DB_MIGRATIONS="${RUN_DB_MIGRATIONS:-false}"
 BACKEND_ENV_FILE="${BACKEND_ENV_FILE:-/etc/blog/blog-backend.env}"
-
-DB_MIGRATION_SCRIPTS=(
-  "prod-account-material-schema.sql"
-  "prod-article-featured-level.sql"
-  "prod-guestbook-schema.sql"
-)
+DB_MIGRATION_SUBDIR="${DB_MIGRATION_SUBDIR:-migrations}"
+DB_MIGRATION_TABLE="${DB_MIGRATION_TABLE:-schema_migrations}"
 
 log() {
   printf '[deploy][%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -99,14 +95,19 @@ run_db_migrations() {
   local provided_jdbc_url="${SPRING_DATASOURCE_URL:-}"
   local provided_db_user="${SPRING_DATASOURCE_USERNAME:-}"
   local provided_db_pass="${SPRING_DATASOURCE_PASSWORD:-}"
+  local migration_dir=""
   local jdbc_url=""
   local db_user=""
   local db_pass=""
   local db_host=""
   local db_port=""
   local db_name=""
-  local script_name=""
-  local script_path=""
+  local migration_name=""
+  local migration_path=""
+  local migration_checksum=""
+  local recorded_checksum=""
+  local escaped_migration_name=""
+  local has_pending_migration="false"
 
   if [[ "${RUN_DB_MIGRATIONS}" != "true" ]]; then
     log "Skipping DB migrations (set RUN_DB_MIGRATIONS=true to enable)."
@@ -114,6 +115,7 @@ run_db_migrations() {
   fi
 
   [[ -d "${scripts_dir}" ]] || fail "Migration scripts directory not found: ${scripts_dir}"
+  migration_dir="${scripts_dir}/${DB_MIGRATION_SUBDIR}"
 
   if [[ -f "${BACKEND_ENV_FILE}" ]]; then
     # shellcheck disable=SC1090
@@ -139,18 +141,106 @@ run_db_migrations() {
     fail "Unsupported SPRING_DATASOURCE_URL format: ${jdbc_url}"
   fi
 
-  for script_name in "${DB_MIGRATION_SCRIPTS[@]}"; do
-    script_path="${scripts_dir}/${script_name}"
-    [[ -f "${script_path}" ]] || fail "Missing migration script: ${script_path}"
-    log "Applying DB migration: ${script_name}"
+  mysql_exec() {
+    local sql="$1"
     if [[ -n "${db_pass}" ]]; then
-      MYSQL_PWD="${db_pass}" mysql --default-character-set=utf8mb4 --host="${db_host}" --port="${db_port}" --user="${db_user}" "${db_name}" < "${script_path}"
+      MYSQL_PWD="${db_pass}" mysql \
+        --default-character-set=utf8mb4 \
+        --batch \
+        --skip-column-names \
+        --raw \
+        --host="${db_host}" \
+        --port="${db_port}" \
+        --user="${db_user}" \
+        "${db_name}" \
+        -e "${sql}"
     else
-      mysql --default-character-set=utf8mb4 --host="${db_host}" --port="${db_port}" --user="${db_user}" "${db_name}" < "${script_path}"
+      mysql \
+        --default-character-set=utf8mb4 \
+        --batch \
+        --skip-column-names \
+        --raw \
+        --host="${db_host}" \
+        --port="${db_port}" \
+        --user="${db_user}" \
+        "${db_name}" \
+        -e "${sql}"
     fi
+  }
+
+  mysql_apply_file() {
+    local sql_file="$1"
+    if [[ -n "${db_pass}" ]]; then
+      MYSQL_PWD="${db_pass}" mysql \
+        --default-character-set=utf8mb4 \
+        --host="${db_host}" \
+        --port="${db_port}" \
+        --user="${db_user}" \
+        "${db_name}" < "${sql_file}"
+    else
+      mysql \
+        --default-character-set=utf8mb4 \
+        --host="${db_host}" \
+        --port="${db_port}" \
+        --user="${db_user}" \
+        "${db_name}" < "${sql_file}"
+    fi
+  }
+
+  escape_sql_literal() {
+    printf "%s" "$1" | sed "s/'/''/g"
+  }
+
+  mysql_exec "
+    CREATE TABLE IF NOT EXISTS ${DB_MIGRATION_TABLE} (
+      id BIGINT NOT NULL AUTO_INCREMENT,
+      filename VARCHAR(255) NOT NULL,
+      checksum VARCHAR(64) NOT NULL,
+      applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uk_${DB_MIGRATION_TABLE}_filename (filename)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  "
+
+  if [[ ! -d "${migration_dir}" ]]; then
+    log "No migration directory found at ${migration_dir}; nothing to apply."
+    return 0
+  fi
+
+  mapfile -t migration_files < <(find "${migration_dir}" -mindepth 1 -maxdepth 1 -type f -name '*.sql' -printf '%f\n' | sort)
+  if [[ "${#migration_files[@]}" -eq 0 ]]; then
+    log "No migration files found in ${migration_dir}; nothing to apply."
+    return 0
+  fi
+
+  for migration_name in "${migration_files[@]}"; do
+    migration_path="${migration_dir}/${migration_name}"
+    migration_checksum="$(sha256sum "${migration_path}" | awk '{print $1}')"
+    escaped_migration_name="$(escape_sql_literal "${migration_name}")"
+    recorded_checksum="$(mysql_exec "SELECT checksum FROM ${DB_MIGRATION_TABLE} WHERE filename = '${escaped_migration_name}' LIMIT 1;")"
+
+    if [[ -n "${recorded_checksum}" ]]; then
+      if [[ "${recorded_checksum}" != "${migration_checksum}" ]]; then
+        fail "Migration checksum mismatch for ${migration_name}. Do not edit an applied migration; create a new one instead."
+      fi
+      log "Skipping already applied migration: ${migration_name}"
+      continue
+    fi
+
+    has_pending_migration="true"
+    log "Applying DB migration: ${migration_name}"
+    mysql_apply_file "${migration_path}"
+    mysql_exec "
+      INSERT INTO ${DB_MIGRATION_TABLE} (filename, checksum)
+      VALUES ('${escaped_migration_name}', '${migration_checksum}');
+    "
   done
 
-  log "DB migrations completed."
+  if [[ "${has_pending_migration}" == "true" ]]; then
+    log "DB migrations completed."
+  else
+    log "DB migrations already up to date."
+  fi
 }
 
 if [[ $# -ne 1 ]]; then
